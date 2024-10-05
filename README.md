@@ -22,10 +22,11 @@ fi
 DEPENDENCIES=(
   "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
   "https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr"
-  "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh:src/dev"
+  "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev"
 )
 
 source lib/bashdep
+bashdep::setup dir="lib" dev-dir="src/dev"
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
@@ -36,6 +37,6 @@ Downloading 'bashunit' to 'lib'...
 > bashunit installed successfully in 'lib'
 Downloading 'create-pr' to 'lib'...
 > create-pr installed successfully in 'lib'
-Downloading 'dumper.sh' to 'lib/dev'...
-> dumper.sh installed successfully in 'lib/dev'
+Downloading 'dumper.sh' to 'src/dev'...
+> dumper.sh installed successfully in 'src/dev'
 ```

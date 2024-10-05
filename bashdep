@@ -1,12 +1,12 @@
 #!/bin/bash
 
-BASHDEP_DEST_DIR="lib"
-BASHDEP_DEV_DEST_DIR="lib/dev"
+BASHDEP_DIR="lib"
+BASHDEP_DEV_DIR="lib/dev"
 
-# bashdep::setup - Configure destination directories.
+# Configure destination directories.
 #
 # Usage:
-#   bashdep::setup [dir=DEST_DIR] [dev-dir=DEV_DEST_DIR]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR]
 #
 # Parameters:
 #       dir - Set the default destination directory.
@@ -18,10 +18,10 @@ function bashdep::setup() {
   for param in "$@"; do
     case $param in
       dir=*)
-        BASHDEP_DEST_DIR="${param#*=}"
+        BASHDEP_DIR="${param#*=}"
         ;;
       dev-dir=*)
-        BASHDEP_DEV_DEST_DIR="${param#*=}"
+        BASHDEP_DEV_DIR="${param#*=}"
         ;;
       *)
         echo "Error: Invalid parameter '$param'"
@@ -39,17 +39,16 @@ function bashdep::install() {
   for dep in "${dependencies[@]}"; do
     if [[ "$dep" == *@dev ]]; then
       url="${dep%@dev}"
-      destination_dir="$BASHDEP_DEV_DEST_DIR"
+      destination_dir="$BASHDEP_DEV_DIR"
     else
       url="$dep"
-      destination_dir="$BASHDEP_DEST_DIR"
+      destination_dir="$BASHDEP_DIR"
     fi
 
     bashdep::setup_directory "$destination_dir"
     bashdep::download_url "$url" "$destination_dir"
   done
 }
-
 
 # Ensure destination directory exists, and create it if missing
 function bashdep::setup_directory() {
@@ -67,7 +66,7 @@ function bashdep::setup_directory() {
 # shellcheck disable=SC2155
 function bashdep::download_url() {
   local url=$1
-  local destination_dir=${2:-$BASHDEP_DEST_DIR}
+  local destination_dir=${2:-$BASHDEP_DIR}
   local file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 
