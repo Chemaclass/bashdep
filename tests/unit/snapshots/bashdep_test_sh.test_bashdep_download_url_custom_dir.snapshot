@@ -1,0 +1,3 @@
+Downloading 'bashunit' to '/tmp/test_bashdep_download_url_custom_dir'...
+mocked curl
+> bashunit installed successfully in '/tmp/test_bashdep_download_url_custom_dir'
