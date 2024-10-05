@@ -1,0 +1,37 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[**.sh]
+max_line_length = 120
+
+[**.md]
+indent_size = 2
+
+[{Makefile,**.mk,.git*}]
+indent_style = tab
+
+[{lib/*,README.md}]
+indent_size = unset
+
+[{tests/acceptance/**.sh,src/console_header.sh}]
+indent_size = unset
+
+[tests/**/*.snapshot]
+indent_size = unset
+max_line_length = unset
+trim_trailing_whitespace = false
+
+[bin/*]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset

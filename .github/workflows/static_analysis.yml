@@ -1,0 +1,28 @@
+name: Static Analysis
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        env:
+          SHELLCHECK_OPTS: -e SC1091 -e SC2155
+

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-BASHDEP_ROOT_DIR="$(dirname "${BASH_SOURCE[0]}")/.."
-source "$BASHDEP_ROOT_DIR"/bashdep.sh
+# shellcheck disable=SC1091
+source "$(dirname "$0")/../bashdep.sh"
 
 DEPENDENCIES=(
   "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
