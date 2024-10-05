@@ -2,6 +2,7 @@
 
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
+BASHDEP_DEV_SUFFIX="@dev"
 
 # Configure destination directories.
 #
@@ -17,12 +18,8 @@ BASHDEP_DEV_DIR="lib/dev"
 function bashdep::setup() {
   for param in "$@"; do
     case $param in
-      dir=*)
-        BASHDEP_DIR="${param#*=}"
-        ;;
-      dev-dir=*)
-        BASHDEP_DEV_DIR="${param#*=}"
-        ;;
+      dir=*)     BASHDEP_DIR="${param#*=}"     ;;
+      dev-dir=*) BASHDEP_DEV_DIR="${param#*=}" ;;
       *)
         echo "Error: Invalid parameter '$param'"
         return 1
@@ -37,8 +34,8 @@ function bashdep::install() {
   local url destination_dir
 
   for dep in "${dependencies[@]}"; do
-    if [[ "$dep" == *@dev ]]; then
-      url="${dep%@dev}"
+    if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
+      url="${dep%"$BASHDEP_DEV_SUFFIX"}"
       destination_dir="$BASHDEP_DEV_DIR"
     else
       url="$dep"
@@ -63,11 +60,11 @@ function bashdep::setup_directory() {
 }
 
 # Download URL to the destination directory
-# shellcheck disable=SC2155
 function bashdep::download_url() {
   local url=$1
   local destination_dir=${2:-$BASHDEP_DIR}
-  local file_name=$(basename "$url")
+  local file_name
+  file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 
   echo "Downloading '$file_name' to '$destination_dir'..."
