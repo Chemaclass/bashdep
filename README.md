@@ -26,7 +26,7 @@ DEPENDENCIES=(
 )
 
 source lib/bashdep
-bashdep::setup dir="lib" dev-dir="src/dev"
+bashdep::setup dir="lib" dev-dir="src/dev" silent=false
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 

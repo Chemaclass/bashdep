@@ -9,5 +9,5 @@ DEPENDENCIES=(
   "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev"
 )
 
-bashdep::setup dir="vendor" dev-dir="local/dev"
+bashdep::setup dir="vendor" dev-dir="local/dev" silent=false
 bashdep::install "${DEPENDENCIES[@]}"

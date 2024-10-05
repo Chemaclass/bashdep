@@ -6,7 +6,21 @@ function set_up() {
   source "$(current_dir)/../../bashdep"
 }
 
-function test_bashdep_install() {
+function test_bashdep_install_custom_setup() {
+  mock bashdep::setup_directory "/dev/null"
+  mock bashdep::download_url "echo mocked download_url"
+  bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
+
+  local DEPENDENCIES=(
+    "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
+    "https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr"
+    "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh:lib/dev"
+  )
+
+  assert_match_snapshot "$(bashdep::install "${DEPENDENCIES[@]}")"
+}
+
+function test_bashdep_install_default_setup() {
   mock bashdep::setup_directory "/dev/null"
   mock bashdep::download_url "echo mocked download_url"
 

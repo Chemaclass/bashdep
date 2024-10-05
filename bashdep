@@ -3,23 +3,26 @@
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
+BASHDEP_SILENT=false
 
-# Configure destination directories.
+# Configure destination directories and silent mode.
 #
 # Usage:
-#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false]
 #
 # Parameters:
-#       dir - Set the default destination directory.
-#   dev-dir - Set the development destination directory.
+#       dir    - Set the default destination directory.
+#   dev-dir    - Set the development destination directory.
+#   silent     - If true, no progress text will be shown during installation.
 #
 # Example:
-#   bashdep::setup dir="vendor" dev-dir="src/dev"
+#   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
 function bashdep::setup() {
   for param in "$@"; do
     case $param in
-      dir=*)     BASHDEP_DIR="${param#*=}"     ;;
-      dev-dir=*) BASHDEP_DEV_DIR="${param#*=}" ;;
+      dir=*)       BASHDEP_DIR="${param#*=}"        ;;
+      dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
+      silent=*)    BASHDEP_SILENT="${param#*=}"     ;;
       *)
         echo "Error: Invalid parameter '$param'"
         return 1
@@ -67,10 +70,14 @@ function bashdep::download_url() {
   file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 
-  echo "Downloading '$file_name' to '$destination_dir'..."
+  if ! bashdep::is_silent; then
+    echo "Downloading '$file_name' to '$destination_dir'..."
+  fi
 
   if curl -s -L "$url" -o "$destination_file"; then
-    echo "> $file_name installed successfully in '$destination_dir'"
+    if ! bashdep::is_silent; then
+      echo "> $file_name installed successfully in '$destination_dir'"
+    fi
     chmod +x "$destination_file"
   else
     echo "Error: Failed to install $file_name from $url"
@@ -78,3 +85,6 @@ function bashdep::download_url() {
   fi
 }
 
+function bashdep::is_silent() {
+  [ "$BASHDEP_SILENT" == true ]
+}
