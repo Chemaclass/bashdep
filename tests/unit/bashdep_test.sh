@@ -3,7 +3,7 @@
 
 function set_up() {
   # shellcheck disable=SC1091
-  source "$(current_dir)/../../bashdep.sh"
+  source "$(current_dir)/../../bashdep"
 }
 
 function test_bashdep_install() {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # shellcheck disable=SC1091
-source "$(dirname "$0")/../bashdep.sh"
+source "$(dirname "$0")/../bashdep"
 
 DEPENDENCIES=(
   "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
