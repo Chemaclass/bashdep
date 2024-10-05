@@ -1,0 +1,12 @@
+###########
+# IDE
+###########
+.idea/
+.vscode/
+
+###########
+# Project
+###########
+
+# third party dependencies
+lib/
