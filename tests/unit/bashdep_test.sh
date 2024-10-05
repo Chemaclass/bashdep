@@ -2,6 +2,7 @@
 # shellcheck disable=SC2155
 
 function set_up() {
+  # shellcheck disable=SC1091
   source "$(current_dir)/../../bashdep.sh"
 }
 

@@ -44,3 +44,68 @@ use with Git. Strings such as `silly nick name <root@localhost>` looks bad in th
 ## Development
 
 - Entry point `bashdep.sh`
+
+## Testing
+
+Install dependencies: `./install-dependencies.sh`
+
+Run tests:
+
+```bash
+# using make
+make test
+
+# using bashunit directly
+lib/bashunit tests
+```
+
+## Coding Guidelines
+
+### ShellCheck
+
+To contribute to this repository you must have [ShellCheck](https://github.com/koalaman/shellcheck) installed on your
+local machine or IDE, since it is the static code analyzer that is being used in continuous integration pipelines.
+
+Installation: https://github.com/koalaman/shellcheck#installing
+
+#### Example of usage
+
+```bash
+# using make
+make sa
+
+# using ShellCheck itself
+shellcheck ./**/**/*.sh -C
+```
+
+### editorconfig-checker
+
+To contribute to this repository, consider installing [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker)
+to check all project files regarding the `.editorconfig` to ensure we all fulfill the standard.
+
+Installation: https://github.com/editorconfig-checker/editorconfig-checker#installation
+
+To run it, use the following command:
+
+```bash
+# using make
+make lint
+
+# using editorconfig-checker itself
+ec -config .editorconfig
+```
+
+This command will be executed on the CI to ensure the project's quality standards.
+
+#### We recommend
+
+To install the pre-commit of the project with the following command:
+
+**Please note that you will need to have ShellCheck and editorconfig-checker installed on your computer.**
+See above how to install in your local.
+
+```bash
+make pre_commit/install
+```
+
+[Shell Guide](https://google.github.io/styleguide/shellguide.html#s7.2-variable-names) by Google Conventions.
