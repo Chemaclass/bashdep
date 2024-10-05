@@ -10,3 +10,4 @@
 
 # third party dependencies
 lib/
+vendor/

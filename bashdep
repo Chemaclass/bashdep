@@ -1,29 +1,55 @@
 #!/bin/bash
 
-BASHDEP_URL_DIVISOR_IR=":"
-BASHDEP_DEFAULT_DEST_DIR="lib"
+BASHDEP_DEST_DIR="lib"
+BASHDEP_DEV_DEST_DIR="lib/dev"
 
-# Process the dependencies and download them
+# bashdep::setup - Configure destination directories.
+#
+# Usage:
+#   bashdep::setup [dir=DEST_DIR] [dev-dir=DEV_DEST_DIR]
+#
+# Parameters:
+#       dir - Set the default destination directory.
+#   dev-dir - Set the development destination directory.
+#
+# Example:
+#   bashdep::setup dir="vendor" dev-dir="src/dev"
+function bashdep::setup() {
+  for param in "$@"; do
+    case $param in
+      dir=*)
+        BASHDEP_DEST_DIR="${param#*=}"
+        ;;
+      dev-dir=*)
+        BASHDEP_DEV_DEST_DIR="${param#*=}"
+        ;;
+      *)
+        echo "Error: Invalid parameter '$param'"
+        return 1
+        ;;
+    esac
+  done
+}
+
+# Download and install all dependencies
 function bashdep::install() {
   local dependencies=("$@")
-  local cleaned_dep url destination_dir
+  local url destination_dir
 
   for dep in "${dependencies[@]}"; do
-    # Remove the scheme (https:// or http://)
-    cleaned_dep="${dep#*://}"
-
-    if [[ $cleaned_dep == *"$BASHDEP_URL_DIVISOR_IR"* ]]; then
-      url="${dep%"$BASHDEP_URL_DIVISOR_IR"*}"
-      destination_dir="${dep##*"$BASHDEP_URL_DIVISOR_IR"}"
+    if [[ "$dep" == *@dev ]]; then
+      url="${dep%@dev}"
+      destination_dir="$BASHDEP_DEV_DEST_DIR"
     else
       url="$dep"
-      destination_dir="$BASHDEP_DEFAULT_DEST_DIR"
+      destination_dir="$BASHDEP_DEST_DIR"
     fi
 
     bashdep::setup_directory "$destination_dir"
     bashdep::download_url "$url" "$destination_dir"
   done
 }
+
 
 # Ensure destination directory exists, and create it if missing
 function bashdep::setup_directory() {
@@ -41,7 +67,7 @@ function bashdep::setup_directory() {
 # shellcheck disable=SC2155
 function bashdep::download_url() {
   local url=$1
-  local destination_dir=${2:-$BASHDEP_DEFAULT_DEST_DIR}
+  local destination_dir=${2:-$BASHDEP_DEST_DIR}
   local file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 
