@@ -6,13 +6,16 @@ A minimalistic and straightforward **bash dependency manager**.
 
 ### Usage
 
-```bash
-# install-dependencies.sh
+Usage example from
+[Chemaclass/bash-skeleton](https://github.com/Chemaclass/bash-skeleton/blob/main/install-dependencies.sh)
 
-# Make sure you have the dependency manager installed
+```bash
+#!/bin/bash
+# Make sure the dependency manager is installed
 if [ ! -f lib/bashdep ]; then
-  [[ ! -d "lib" ]] && mkdir "lib"
-  curl -s -L -o lib/bashdep https://github.com/Chemaclass/bashdep/releases/download/0.1/bashdep
+  [[ ! -d "lib" ]] && mkdir -p "lib"
+  curl -s -L -o lib/bashdep \
+    https://github.com/Chemaclass/bashdep/releases/download/0.1/bashdep
   chmod +x lib/bashdep
 fi
 
@@ -26,7 +29,8 @@ source lib/bashdep
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-Output
+#### Output
+
 ```bash
 Downloading 'bashunit' to 'lib'...
 > bashunit installed successfully in 'lib'
