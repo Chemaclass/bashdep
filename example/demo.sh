@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DM_ROOT_DIR="$(dirname "${BASH_SOURCE[0]}")/.."
-source "$DM_ROOT_DIR"/dependency-manager.sh
+BASHDEP_ROOT_DIR="$(dirname "${BASH_SOURCE[0]}")/.."
+source "$BASHDEP_ROOT_DIR"/bashdep.sh
 
 DEPENDENCIES=(
   "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
