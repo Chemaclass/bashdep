@@ -1,10 +1,10 @@
 #!/bin/bash
 
-URL_DIR_DIVISOR=":"
-DEFAULT_DEST_DIR="lib"
+BASHDEP_URL_DIVISOR_IR=":"
+BASHDEP_DEFAULT_DEST_DIR="lib"
 
 # Process the dependencies and download them
-function process_dependencies() {
+function bashdep::install() {
   local dependencies=("$@")
   local cleaned_dep url destination_dir
 
@@ -12,21 +12,21 @@ function process_dependencies() {
     # Remove the scheme (https:// or http://)
     cleaned_dep="${dep#*://}"
 
-    if [[ $cleaned_dep == *"$URL_DIR_DIVISOR"* ]]; then
-      url="${dep%"$URL_DIR_DIVISOR"*}"
-      destination_dir="${dep##*"$URL_DIR_DIVISOR"}"
+    if [[ $cleaned_dep == *"$BASHDEP_URL_DIVISOR_IR"* ]]; then
+      url="${dep%"$BASHDEP_URL_DIVISOR_IR"*}"
+      destination_dir="${dep##*"$BASHDEP_URL_DIVISOR_IR"}"
     else
       url="$dep"
-      destination_dir="$DEFAULT_DEST_DIR"
+      destination_dir="$BASHDEP_DEFAULT_DEST_DIR"
     fi
 
-    setup_directory "$destination_dir"
-    download_url "$url" "$destination_dir"
+    bashdep::setup_directory "$destination_dir"
+    bashdep::download_url "$url" "$destination_dir"
   done
 }
 
 # Ensure destination directory exists, and create it if missing
-function setup_directory() {
+function bashdep::setup_directory() {
   local destination_dir=$1
 
   if [[ ! -d "$destination_dir" ]]; then
@@ -39,9 +39,9 @@ function setup_directory() {
 
 # Download URL to the destination directory
 # shellcheck disable=SC2155
-function download_url() {
+function bashdep::download_url() {
   local url=$1
-  local destination_dir=${2:-$DEFAULT_DEST_DIR}
+  local destination_dir=${2:-$BASHDEP_DEFAULT_DEST_DIR}
   local file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 

@@ -9,5 +9,4 @@ DEPENDENCIES=(
   "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh:lib/dev"
 )
 
-# Main execution
-process_dependencies "${DEPENDENCIES[@]}"
+bashdep::install "${DEPENDENCIES[@]}"
