@@ -1,3 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
-curl -s https://bashunit.typeddevs.com/install.sh | bash
+echo "Installing test dependencies via bashunit installer..."
+curl -fsSL https://bashunit.typeddevs.com/install.sh | bash

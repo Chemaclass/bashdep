@@ -67,3 +67,27 @@ Downloading 'create-pr' to 'lib'...
 Downloading 'dumper.sh' to 'src/dev'...
 > dumper.sh installed successfully in 'src/dev'
 ```
+
+### Development
+
+Install required dependencies to run the tests:
+
+```bash
+make deps
+```
+
+Then run the test suite and linters:
+
+```bash
+make test
+make sa
+make lint
+```
+
+To enable automatic checks before each commit install the pre-commit hook:
+
+```bash
+make pre_commit/install
+```
+
+For more details see [CONTRIBUTING](.github/CONTRIBUTING.md).
