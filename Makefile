@@ -45,6 +45,7 @@ help:
 	@echo "  pre_commit/run           Function that will be called when the pre-commit hook runs"
 	@echo "  sa                       Run shellcheck static analysis tool"
 	@echo "  lint                     Run editorconfig linter tool"
+	@echo "  deps                     Install required test dependencies"
 
 SRC_SCRIPTS_DIR=src
 PRE_COMMIT_SCRIPTS_FILE=./bin/pre-commit
@@ -71,3 +72,6 @@ ifndef LINTER_CHECKER
 else
 	@ec -config .editorconfig && printf "\e[1m\e[32m%s\e[0m\n" "editorconfig-check: OK!"
 endif
+
+deps:
+	bash install-dependencies.sh
