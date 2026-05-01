@@ -43,11 +43,11 @@ use with Git. Strings such as `silly nick name <root@localhost>` looks bad in th
 
 ## Development
 
-- Entry point `bashdep.sh`
+- Entry point: `bashdep` (sourced by consumers as a library).
 
 ## Testing
 
-Install dependencies: `./install-dependencies.sh`
+Install dependencies: `make deps` (or `./install-dependencies.sh`).
 
 Run tests:
 

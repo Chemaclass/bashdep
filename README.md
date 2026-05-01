@@ -1,51 +1,55 @@
 # bashdep
 
-A minimalistic and straightforward **bash dependency manager**.
+[![Tests](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml)
+[![Static Analysis](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml)
+[![Lint](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+A minimalistic, zero-dependency **bash dependency manager**. Declare a list of
+URLs and bashdep will download them into a `lib/` directory you can `source`
+from your scripts.
 
-### Usage
+## Contents
 
-#### bashdep::install
+- [Why bashdep?](#why-bashdep)
+- [Install](#install)
+- [Quick start](#quick-start)
+- [API](#api)
+  - [`bashdep::install`](#bashdepinstall)
+  - [`bashdep::setup`](#bashdepsetup)
+  - [`bashdep::version`](#bashdepversion)
+- [Behavior](#behavior)
+  - [Skip vs. force re-download](#skip-vs-force-re-download)
+  - [Dev dependencies](#dev-dependencies)
+  - [Error handling](#error-handling)
+- [Development](#development)
 
-You can distinguish between regular dependencies and dev-dependencies when defining the URL.
-Dev-dependencies ends with `@dev`
+## Why bashdep?
+
+Most bash projects vendor scripts by hand: `curl`, `chmod +x`, repeat. bashdep
+turns that into one declarative list with sensible defaults: idempotent
+installs, dev/prod separation via the `@dev` suffix, and a single `force` flag
+to force a refresh. No package registry, no lockfile, no runtime — just `curl`.
+
+## Install
+
+Drop the `bashdep` script into your repo (typically under `lib/`):
 
 ```bash
-DEPENDENCIES=(
-  "https://github.com/[...]/download/0.17.0/bashunit"
-  "https://github.com/[...]/download/0.1/dumper.sh@dev"
-)
-
-bashdep::install "${DEPENDENCIES[@]}"
+mkdir -p lib
+curl -fsSLo lib/bashdep https://raw.githubusercontent.com/Chemaclass/bashdep/main/bashdep
+chmod +x lib/bashdep
 ```
 
-#### bashdep::setup
+Then `source lib/bashdep` from your install script.
 
-Alternately, you can configure the default values of bashdep using the setup function.
-
-- `dir=string`: set the default destination directory. Default: `lib`
-- `dev-dir=string`: set the development destination directory. Default: `lib/dev`
-- `silent=bool`: if true, no progress text will be shown during installation. Default: `false`
-- `force=bool`: if true, download the dependency even when it already exists. Default: `false`
-
-```bash
-bashdep::setup dir="lib" dev-dir="src/dev" silent=false force=false
-bashdep::install "${DEPENDENCIES[@]}"
-```
-
-### Demo
-
-Usage example from
-[Chemaclass/bash-skeleton](https://github.com/Chemaclass/bash-skeleton/blob/main/install-dependencies.sh)
+## Quick start
 
 ```bash
 #!/bin/bash
-[ ! -f lib/bashdep ] && {
-  mkdir -p lib
-  curl -sLo lib/bashdep https://github.com/Chemaclass/bashdep/releases/download/0.1/bashdep
-  chmod +x lib/bashdep
-}
+set -euo pipefail
+
+source lib/bashdep
 
 DEPENDENCIES=(
   "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
@@ -53,42 +57,112 @@ DEPENDENCIES=(
   "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev"
 )
 
-source lib/bashdep
-bashdep::setup dir="lib" dev-dir="src/dev" silent=false force=false
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-#### Output
+Run it, and bashdep prints:
 
-```bash
+```
 Downloading 'bashunit' to 'lib'...
 > bashunit installed successfully in 'lib'
 Downloading 'create-pr' to 'lib'...
 > create-pr installed successfully in 'lib'
-Downloading 'dumper.sh' to 'src/dev'...
-> dumper.sh installed successfully in 'src/dev'
+Downloading 'dumper.sh' to 'lib/dev'...
+> dumper.sh installed successfully in 'lib/dev'
 ```
 
-### Development
+Re-run it and previously-installed files are skipped:
 
-Install required dependencies to run the tests:
+```
+> bashunit already exists in 'lib', skipping.
+```
+
+## API
+
+### `bashdep::install`
+
+Download every dependency in the list into the configured directories.
+
+```bash
+bashdep::install "${DEPENDENCIES[@]}"
+```
+
+Returns the number of failed downloads (0 on success). Pair with
+`set -e` or check `$?` to gate the rest of your script.
+
+### `bashdep::setup`
+
+Configure defaults before calling `install`. All parameters are optional.
+
+| Param     | Type   | Default   | Purpose                                                |
+| --------- | ------ | --------- | ------------------------------------------------------ |
+| `dir`     | string | `lib`     | Destination for normal dependencies.                   |
+| `dev-dir` | string | `lib/dev` | Destination for dev dependencies (URLs ending `@dev`). |
+| `silent`  | bool   | `false`   | Suppress progress output.                              |
+| `force`   | bool   | `false`   | Re-download even when the file already exists.         |
+
+```bash
+bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
+```
+
+Invalid values (unknown param, non-boolean for `silent`/`force`) cause
+`setup` to print an error to stderr and return `1`.
+
+### `bashdep::version`
+
+Print the bashdep version.
+
+```bash
+bashdep::version  # 0.2.0
+```
+
+## Behavior
+
+### Skip vs. force re-download
+
+By default `bashdep::install` is idempotent: if a destination file already
+exists, the download is skipped. Pass `force=true` to refresh:
+
+```bash
+bashdep::setup force=true
+bashdep::install "${DEPENDENCIES[@]}"
+```
+
+### Dev dependencies
+
+A URL ending in `@dev` is treated as a development-only dependency and
+installed into `dev-dir` instead of `dir`:
+
+```bash
+DEPENDENCIES=(
+  "https://example.com/runtime.sh"          # → lib/
+  "https://example.com/dev-tool.sh@dev"     # → lib/dev/
+)
+```
+
+### Error handling
+
+- `download_url` returns `1` and prints to stderr on `curl` failure or missing URL.
+- `install` keeps going through the list and returns the number of failures.
+- `setup_directory` returns `1` if it cannot create the destination dir.
+
+Use `set -e` plus `bashdep::install ... || exit $?` to fail fast in scripts.
+
+## Development
+
+Install test dependencies (bashunit) and run the suite:
 
 ```bash
 make deps
-```
-
-Then run the test suite and linters:
-
-```bash
 make test
-make sa
-make lint
 ```
 
-To enable automatic checks before each commit install the pre-commit hook:
+Other targets:
 
 ```bash
+make sa                # ShellCheck static analysis
+make lint              # editorconfig-checker
 make pre_commit/install
 ```
 
-For more details see [CONTRIBUTING](.github/CONTRIBUTING.md).
+See [CONTRIBUTING](.github/CONTRIBUTING.md) for the full contributor guide.

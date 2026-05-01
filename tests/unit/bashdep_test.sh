@@ -7,7 +7,7 @@ function set_up() {
 }
 
 function test_bashdep_install_custom_setup() {
-  mock bashdep::setup_directory "/dev/null"
+  mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "echo mocked download_url"
   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
 
@@ -21,7 +21,7 @@ function test_bashdep_install_custom_setup() {
 }
 
 function test_bashdep_install_default_setup() {
-  mock bashdep::setup_directory "/dev/null"
+  mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "echo mocked download_url"
 
   local DEPENDENCIES=(
@@ -68,4 +68,47 @@ function test_bashdep_download_url_skip_when_exists() {
 
   assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
   rm -rf "$dir"
+}
+
+function test_bashdep_download_url_force_redownload() {
+  local url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
+  local dir="/tmp/test_bashdep_download_url_force_redownload"
+  local file="$dir/bashunit"
+
+  mkdir -p "$dir"
+  touch "$file"
+  mock curl "echo mocked curl"
+  bashdep::setup force=true
+
+  assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
+  rm -rf "$dir"
+}
+
+function test_bashdep_setup_rejects_invalid_bool() {
+  bashdep::setup silent=maybe 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_setup_rejects_unknown_param() {
+  bashdep::setup unknown=value 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_download_url_requires_url() {
+  bashdep::download_url "" "/tmp" 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_install_returns_failure_count() {
+  mock bashdep::setup_directory "return 0"
+  mock bashdep::download_url "return 1"
+
+  bashdep::install "https://example.com/a" "https://example.com/b"
+  local rc=$?
+
+  assert_equals 2 "$rc"
+}
+
+function test_bashdep_version_is_set() {
+  assert_not_empty "$(bashdep::version)"
 }
