@@ -27,9 +27,10 @@ Alternately, you can configure the default values of bashdep using the setup fun
 - `dir=string`: set the default destination directory. Default: `lib`
 - `dev-dir=string`: set the development destination directory. Default: `lib/dev`
 - `silent=bool`: if true, no progress text will be shown during installation. Default: `false`
+- `force=bool`: if true, download the dependency even when it already exists. Default: `false`
 
 ```bash
-bashdep::setup dir="lib" dev-dir="src/dev" silent=false
+bashdep::setup dir="lib" dev-dir="src/dev" silent=false force=false
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
@@ -53,7 +54,7 @@ DEPENDENCIES=(
 )
 
 source lib/bashdep
-bashdep::setup dir="lib" dev-dir="src/dev" silent=false
+bashdep::setup dir="lib" dev-dir="src/dev" silent=false force=false
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 

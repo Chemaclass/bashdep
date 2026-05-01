@@ -4,16 +4,18 @@ BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
 BASHDEP_SILENT=false
+BASHDEP_FORCE=false
 
 # Configure destination directories and silent mode.
 #
 # Usage:
-#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false] [force=true|false]
 #
 # Parameters:
 #       dir    - Set the default destination directory.
 #   dev-dir    - Set the development destination directory.
 #   silent     - If true, no progress text will be shown during installation.
+#   force      - If true, re-download dependencies even if they already exist.
 #
 # Example:
 #   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
@@ -23,6 +25,7 @@ function bashdep::setup() {
       dir=*)       BASHDEP_DIR="${param#*=}"        ;;
       dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
       silent=*)    BASHDEP_SILENT="${param#*=}"     ;;
+      force=*)     BASHDEP_FORCE="${param#*=}"      ;;
       *)
         echo "Error: Invalid parameter '$param'"
         return 1
@@ -70,6 +73,13 @@ function bashdep::download_url() {
   file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
 
+  if [[ -f "$destination_file" ]] && ! bashdep::is_force; then
+    if ! bashdep::is_silent; then
+      echo "> $file_name already exists in '$destination_dir', skipping."
+    fi
+    return 0
+  fi
+
   if ! bashdep::is_silent; then
     echo "Downloading '$file_name' to '$destination_dir'..."
   fi
@@ -87,4 +97,8 @@ function bashdep::download_url() {
 
 function bashdep::is_silent() {
   [ "$BASHDEP_SILENT" == true ]
+}
+
+function bashdep::is_force() {
+  [ "$BASHDEP_FORCE" == true ]
 }

@@ -50,8 +50,22 @@ function test_bashdep_download_url_custom_dir() {
   local url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
   local dir="/tmp/test_bashdep_download_url_custom_dir"
 
+  mkdir -p "$dir"
   mock curl "echo mocked curl"
 
   assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
-  rmdir "$dir"
+  rm -rf "$dir"
+}
+
+function test_bashdep_download_url_skip_when_exists() {
+  local url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
+  local dir="/tmp/test_bashdep_download_url_skip_when_exists"
+  local file="$dir/bashunit"
+
+  mkdir -p "$dir"
+  touch "$file"
+  mock curl "echo mocked curl"
+
+  assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
+  rm -rf "$dir"
 }
