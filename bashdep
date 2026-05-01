@@ -1,21 +1,27 @@
 #!/bin/bash
 
+BASHDEP_VERSION="0.2.0"
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 
-# Configure destination directories and silent mode.
+# Print bashdep version.
+function bashdep::version() {
+  echo "$BASHDEP_VERSION"
+}
+
+# Configure bashdep behavior.
 #
 # Usage:
 #   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false] [force=true|false]
 #
 # Parameters:
-#       dir    - Set the default destination directory.
-#   dev-dir    - Set the development destination directory.
-#   silent     - If true, no progress text will be shown during installation.
-#   force      - If true, re-download dependencies even if they already exist.
+#       dir    - Default destination directory (default: lib).
+#   dev-dir    - Development destination directory (default: lib/dev).
+#   silent     - Suppress progress output (default: false).
+#   force      - Re-download dependencies even if they already exist (default: false).
 #
 # Example:
 #   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
@@ -24,20 +30,21 @@ function bashdep::setup() {
     case $param in
       dir=*)       BASHDEP_DIR="${param#*=}"        ;;
       dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
-      silent=*)    BASHDEP_SILENT="${param#*=}"     ;;
-      force=*)     BASHDEP_FORCE="${param#*=}"      ;;
+      silent=*)    bashdep::_set_bool BASHDEP_SILENT "${param#*=}" silent || return 1 ;;
+      force=*)     bashdep::_set_bool BASHDEP_FORCE "${param#*=}" force  || return 1 ;;
       *)
-        echo "Error: Invalid parameter '$param'"
+        echo "Error: Invalid parameter '$param'" >&2
         return 1
         ;;
     esac
   done
 }
 
-# Download and install all dependencies
+# Download and install all dependencies.
+# Returns 0 if all succeed, otherwise the number of failures.
 function bashdep::install() {
   local dependencies=("$@")
-  local url destination_dir
+  local url destination_dir failures=0
 
   for dep in "${dependencies[@]}"; do
     if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
@@ -48,27 +55,43 @@ function bashdep::install() {
       destination_dir="$BASHDEP_DIR"
     fi
 
-    bashdep::setup_directory "$destination_dir"
-    bashdep::download_url "$url" "$destination_dir"
+    bashdep::setup_directory "$destination_dir" || { failures=$((failures + 1)); continue; }
+    bashdep::download_url "$url" "$destination_dir" || failures=$((failures + 1))
   done
+
+  return "$failures"
 }
 
-# Ensure destination directory exists, and create it if missing
+# Ensure destination directory exists. Create it if missing.
+# Returns 1 if the directory cannot be created.
 function bashdep::setup_directory() {
   local destination_dir=$1
 
+  if [[ -z "$destination_dir" ]]; then
+    echo "Error: setup_directory requires a directory argument." >&2
+    return 1
+  fi
+
   if [[ ! -d "$destination_dir" ]]; then
-    mkdir -p "$destination_dir" || {
-      echo "Error: Could not create directory '$destination_dir'. Exiting."
-      exit 1
-    }
+    if ! mkdir -p "$destination_dir"; then
+      echo "Error: Could not create directory '$destination_dir'." >&2
+      return 1
+    fi
   fi
 }
 
-# Download URL to the destination directory
+# Download a URL to the destination directory.
+# Skips when the file already exists, unless force=true is configured.
+# Returns 1 on missing URL or curl failure.
 function bashdep::download_url() {
   local url=$1
   local destination_dir=${2:-$BASHDEP_DIR}
+
+  if [[ -z "$url" ]]; then
+    echo "Error: download_url requires a URL argument." >&2
+    return 1
+  fi
+
   local file_name
   file_name=$(basename "$url")
   local destination_file="$destination_dir/$file_name"
@@ -84,13 +107,13 @@ function bashdep::download_url() {
     echo "Downloading '$file_name' to '$destination_dir'..."
   fi
 
-  if curl -s -L "$url" -o "$destination_file"; then
+  if curl -fsSL "$url" -o "$destination_file"; then
     if ! bashdep::is_silent; then
       echo "> $file_name installed successfully in '$destination_dir'"
     fi
     chmod +x "$destination_file"
   else
-    echo "Error: Failed to install $file_name from $url"
+    echo "Error: Failed to install $file_name from $url" >&2
     return 1
   fi
 }
@@ -101,4 +124,16 @@ function bashdep::is_silent() {
 
 function bashdep::is_force() {
   [ "$BASHDEP_FORCE" == true ]
+}
+
+# Internal: validate and assign a boolean variable.
+function bashdep::_set_bool() {
+  local var_name=$1 raw=$2 label=$3
+  case "$raw" in
+    true|false) printf -v "$var_name" '%s' "$raw" ;;
+    *)
+      echo "Error: '$label' must be 'true' or 'false', got '$raw'" >&2
+      return 1
+      ;;
+  esac
 }
