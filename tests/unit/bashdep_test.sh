@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2155
+# shellcheck disable=SC2155,SC2034
 
 function set_up() {
   # shellcheck disable=SC1091
