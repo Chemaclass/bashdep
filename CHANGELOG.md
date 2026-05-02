@@ -1,41 +1,31 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-05-02
-
 ### Added
 
-- Per-destination `.bashdep.lock` file recording the source URL of each
-  installed dependency. `bashdep::install` now uses the lockfile to make the
-  install idempotent **per source URL** rather than per filename.
-- New internal helpers `bashdep::_lock_get` and `bashdep::_lock_set` to
-  read and upsert entries in the lockfile.
+- `<dest>/.bashdep.lock` records the source URL of each installed dependency.
+- Internal helpers `bashdep::_lock_get` / `bashdep::_lock_set`.
+- `bashdep::setup` with `dir`, `dev-dir`, `silent`, `force` parameters.
+- `@dev` URL suffix routes a dependency to `dev-dir`.
+- `bashdep::version` prints the current version.
 
 ### Changed
 
-- `bashdep::download_url` re-downloads a dependency when its source URL
-  changes (e.g. a release version bump), even if a file with the same
-  basename already exists. Previously, a version bump was silently skipped
-  because the on-disk filename had not changed.
-- A pre-existing destination file with no matching lockfile entry is now
-  re-downloaded once to record its source URL. This is a one-time cost on
-  upgrade from 0.2.x and ensures the lockfile stays authoritative.
-- Bumped `BASHDEP_VERSION` to `0.3.0`.
+- `bashdep::install` is now idempotent **per source URL**, not per filename.
+  A release bump (e.g. `0.17.0` → `0.18.0`) re-downloads even when the
+  basename is unchanged.
+- Pre-existing files without a lock entry are re-downloaded once on first
+  run after upgrade to populate the lockfile.
+- Strict error handling: `download_url` / `setup_directory` return non-zero
+  on failure; `install` returns the failure count.
+- `BASHDEP_VERSION` set to `0.3.0` (in-tree; not yet released).
 
-## [0.2.0]
+## [0.1]
 
-### Added
+- Initial release: declarative `bashdep::install` over a list of URLs.
 
-- `force=true` setup parameter to refresh dependencies even when the file
-  already exists.
-- `@dev` URL suffix to route a dependency to the dev directory.
-
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.3.0...HEAD
-[0.3.0]: https://github.com/Chemaclass/bashdep/compare/0.2.0...0.3.0
-[0.2.0]: https://github.com/Chemaclass/bashdep/releases/tag/0.2.0
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.1...HEAD
+[0.1]: https://github.com/Chemaclass/bashdep/releases/tag/0.1
