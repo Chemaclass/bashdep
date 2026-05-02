@@ -45,22 +45,29 @@ function bashdep::setup() {
 # Returns 0 if all succeed, otherwise the number of failures.
 function bashdep::install() {
   local dependencies=("$@")
-  local url destination_dir failures=0
+  local failures=0
 
   for dep in "${dependencies[@]}"; do
-    if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
-      url="${dep%"$BASHDEP_DEV_SUFFIX"}"
-      destination_dir="$BASHDEP_DEV_DIR"
-    else
-      url="$dep"
-      destination_dir="$BASHDEP_DIR"
-    fi
-
-    bashdep::setup_directory "$destination_dir" || { failures=$((failures + 1)); continue; }
-    bashdep::download_url "$url" "$destination_dir" || failures=$((failures + 1))
+    bashdep::_classify_dep "$dep"
+    bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
+    bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
   done
 
   return "$failures"
+}
+
+# Internal: classify a dependency string into URL and target directory.
+# A dep ending in $BASHDEP_DEV_SUFFIX routes to $BASHDEP_DEV_DIR; otherwise $BASHDEP_DIR.
+# Sets BASHDEP_DEP_URL and BASHDEP_DEP_DIR. Pure (no I/O).
+function bashdep::_classify_dep() {
+  local dep=$1
+  if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
+    BASHDEP_DEP_URL="${dep%"$BASHDEP_DEV_SUFFIX"}"
+    BASHDEP_DEP_DIR="$BASHDEP_DEV_DIR"
+  else
+    BASHDEP_DEP_URL="$dep"
+    BASHDEP_DEP_DIR="$BASHDEP_DIR"
+  fi
 }
 
 # Ensure destination directory exists. Create it if missing.
