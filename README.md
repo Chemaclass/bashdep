@@ -113,20 +113,37 @@ Invalid values (unknown param, non-boolean for `silent`/`force`) cause
 Print the bashdep version.
 
 ```bash
-bashdep::version  # 0.2.0
+bashdep::version  # 0.3.0
 ```
 
 ## Behavior
 
 ### Skip vs. force re-download
 
-By default `bashdep::install` is idempotent: if a destination file already
-exists, the download is skipped. Pass `force=true` to refresh:
+`bashdep::install` is idempotent **per source URL**, not per filename. The
+first install writes a `.bashdep.lock` file in each destination directory
+recording every dependency's source URL:
+
+```
+# lib/.bashdep.lock
+bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+```
+
+On subsequent runs, a dependency is skipped only when the file is present
+**and** the lockfile records the same URL. Bumping a release in the URL
+(e.g. `0.17.0` → `0.18.0`) triggers a re-download even though the basename
+is unchanged.
+
+Pass `force=true` to refresh regardless of the lockfile:
 
 ```bash
 bashdep::setup force=true
 bashdep::install "${DEPENDENCIES[@]}"
 ```
+
+Commit `.bashdep.lock` alongside your install script so collaborators get the
+same versions you do.
 
 ### Dev dependencies
 

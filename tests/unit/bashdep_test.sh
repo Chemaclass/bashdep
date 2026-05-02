@@ -4,6 +4,8 @@
 function set_up() {
   # shellcheck disable=SC1091
   source "$(current_dir)/../../bashdep"
+  BASHDEP_FORCE=false
+  BASHDEP_SILENT=false
 }
 
 function test_bashdep_install_custom_setup() {
@@ -40,10 +42,15 @@ function test_bashdep_setup_directory() {
 }
 
 function test_bashdep_download_url_default_dir() {
-  mock curl "echo mocked curl"
+  local dir="/tmp/test_bashdep_download_url_default_dir"
   local url="fake.url"
 
+  mkdir -p "$dir"
+  BASHDEP_DIR="$dir"
+  mock curl "echo mocked curl"
+
   assert_match_snapshot "$(bashdep::download_url "$url")"
+  rm -rf "$dir"
 }
 
 function test_bashdep_download_url_custom_dir() {
@@ -57,9 +64,43 @@ function test_bashdep_download_url_custom_dir() {
   rm -rf "$dir"
 }
 
-function test_bashdep_download_url_skip_when_exists() {
+function test_bashdep_download_url_skip_when_lock_matches() {
   local url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
-  local dir="/tmp/test_bashdep_download_url_skip_when_exists"
+  local dir="/tmp/test_bashdep_download_url_skip_when_lock_matches"
+  local file="$dir/bashunit"
+
+  mkdir -p "$dir"
+  touch "$file"
+  printf 'bashunit\t%s\n' "$url" > "$dir/.bashdep.lock"
+  mock curl "echo mocked curl"
+
+  assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
+  rm -rf "$dir"
+}
+
+function test_bashdep_download_url_redownloads_when_url_changes() {
+  local old_url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
+  local new_url="https://github.com/TypedDevs/bashunit/releases/download/0.18.0/bashunit"
+  local dir="/tmp/test_bashdep_download_url_redownloads_when_url_changes"
+  local file="$dir/bashunit"
+
+  mkdir -p "$dir"
+  touch "$file"
+  printf 'bashunit\t%s\n' "$old_url" > "$dir/.bashdep.lock"
+  mock curl "echo mocked curl"
+
+  assert_match_snapshot "$(bashdep::download_url "$new_url" "$dir")"
+
+  local recorded
+  recorded=$(awk -F '\t' '$1 == "bashunit" { print $2 }' "$dir/.bashdep.lock")
+  assert_equals "$new_url" "$recorded"
+
+  rm -rf "$dir"
+}
+
+function test_bashdep_download_url_redownloads_when_lock_missing() {
+  local url="https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
+  local dir="/tmp/test_bashdep_download_url_redownloads_when_lock_missing"
   local file="$dir/bashunit"
 
   mkdir -p "$dir"
@@ -67,6 +108,7 @@ function test_bashdep_download_url_skip_when_exists() {
   mock curl "echo mocked curl"
 
   assert_match_snapshot "$(bashdep::download_url "$url" "$dir")"
+  assert_file_exists "$dir/.bashdep.lock"
   rm -rf "$dir"
 }
 
@@ -77,6 +119,7 @@ function test_bashdep_download_url_force_redownload() {
 
   mkdir -p "$dir"
   touch "$file"
+  printf 'bashunit\t%s\n' "$url" > "$dir/.bashdep.lock"
   mock curl "echo mocked curl"
   bashdep::setup force=true
 
@@ -111,4 +154,33 @@ function test_bashdep_install_returns_failure_count() {
 
 function test_bashdep_version_is_set() {
   assert_not_empty "$(bashdep::version)"
+}
+
+function test_bashdep_lock_get_returns_url_for_filename() {
+  local lock_file
+  lock_file=$(mktemp)
+  {
+    printf 'bashunit\thttps://example.com/bashunit\n'
+    printf 'create-pr\thttps://example.com/create-pr\n'
+  } > "$lock_file"
+
+  assert_equals "https://example.com/bashunit" "$(bashdep::_lock_get "$lock_file" bashunit)"
+  assert_equals "https://example.com/create-pr" "$(bashdep::_lock_get "$lock_file" create-pr)"
+  assert_empty "$(bashdep::_lock_get "$lock_file" missing)"
+
+  rm -f "$lock_file"
+}
+
+function test_bashdep_lock_set_upserts_entry() {
+  local lock_file
+  lock_file=$(mktemp)
+
+  bashdep::_lock_set "$lock_file" bashunit https://example.com/0.17.0
+  bashdep::_lock_set "$lock_file" bashunit https://example.com/0.18.0
+  bashdep::_lock_set "$lock_file" create-pr https://example.com/cpr
+
+  assert_equals "https://example.com/0.18.0" "$(bashdep::_lock_get "$lock_file" bashunit)"
+  assert_equals "https://example.com/cpr"     "$(bashdep::_lock_get "$lock_file" create-pr)"
+
+  rm -f "$lock_file"
 }
