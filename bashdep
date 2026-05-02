@@ -99,31 +99,47 @@ function bashdep::download_url() {
   local destination_file="$destination_dir/$file_name"
   local lock_file="$destination_dir/$BASHDEP_LOCK_FILE"
 
-  if [[ -f "$destination_file" ]] && ! bashdep::is_force; then
-    if [[ "$(bashdep::_lock_get "$lock_file" "$file_name")" == "$url" ]]; then
-      bashdep::is_silent || echo "> $file_name already exists in '$destination_dir', skipping."
-      return 0
-    fi
+  if bashdep::_should_skip_download "$destination_file" "$lock_file" "$file_name" "$url"; then
+    bashdep::_log "> $file_name already exists in '$destination_dir', skipping."
+    return 0
   fi
 
-  bashdep::is_silent || echo "Downloading '$file_name' to '$destination_dir'..."
+  bashdep::_log "Downloading '$file_name' to '$destination_dir'..."
 
-  if curl -fsSL "$url" -o "$destination_file"; then
-    bashdep::is_silent || echo "> $file_name installed successfully in '$destination_dir'"
-    chmod +x "$destination_file"
-    bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
-  else
-    echo "Error: Failed to install $file_name from $url" >&2
+  local rc
+  curl -fsSL "$url" -o "$destination_file"
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    echo "Error: curl exit $rc — failed to install $file_name from $url" >&2
     return 1
   fi
+
+  bashdep::_log "> $file_name installed successfully in '$destination_dir'"
+  chmod +x "$destination_file"
+  bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
 }
 
 function bashdep::is_silent() {
-  [ "$BASHDEP_SILENT" == true ]
+  [[ "$BASHDEP_SILENT" == true ]]
 }
 
 function bashdep::is_force() {
-  [ "$BASHDEP_FORCE" == true ]
+  [[ "$BASHDEP_FORCE" == true ]]
+}
+
+# Internal: print message to stdout unless silent mode is enabled.
+function bashdep::_log() {
+  bashdep::is_silent || echo "$@"
+}
+
+# Internal: return 0 when an existing dependency can be reused.
+# True when destination file exists, force is off, and the lockfile records
+# the same source URL. False otherwise.
+function bashdep::_should_skip_download() {
+  local destination_file=$1 lock_file=$2 file_name=$3 url=$4
+  [[ -f "$destination_file" ]] || return 1
+  bashdep::is_force && return 1
+  [[ "$(bashdep::_lock_get "$lock_file" "$file_name")" == "$url" ]]
 }
 
 # Internal: validate and assign a boolean variable.
