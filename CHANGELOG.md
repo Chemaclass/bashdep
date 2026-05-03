@@ -6,6 +6,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- `bashdep::uninstall <file...>` removes a dep file plus its lockfile
+  entry; drops the lockfile when its last entry is gone.
+- `bashdep::clean` removes orphan files (in dir, not in lockfile).
+  Skips directories without a lockfile.
+- `bashdep::doctor` reports lockfile/filesystem inconsistencies
+  (missing files, orphan files). Returns the issue count.
+- `bashdep::self_update [ref] [target]` refreshes the bashdep script
+  from upstream via atomic `mv`. URL configurable via
+  `BASHDEP_SELF_URL_TEMPLATE`.
+- `dry-run=true` setup parameter previews actions without writing.
+- `verbose=true` setup parameter logs extra context (URLs on skip,
+  lockfile path on install). Suppressed by `silent=true`.
 - Dedicated `docs/` folder split out of README: `docs/api.md` (full API
   reference) and `docs/behavior.md` (lockfile, dev deps, error handling).
 - `bashdep::install_from <file>` reads a dependency list from disk; blank
