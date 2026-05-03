@@ -10,6 +10,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Fixed
 
+## [0.4.1] - 2026-05-03
+
+### Added
+
+### Changed
+
+### Fixed
+
 ## [0.4.0] - 2026-05-03
 
 ### Added
@@ -61,6 +69,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.4.1...HEAD
+[0.4.1]: https://github.com/Chemaclass/bashdep/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/Chemaclass/bashdep/compare/0.3.0...0.4.0
 [0.1]: https://github.com/Chemaclass/bashdep/releases/tag/0.1
