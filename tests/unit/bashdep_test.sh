@@ -464,22 +464,26 @@ function test_bashdep_download_url_url_change_updates_lock() {
 }
 
 function test_bashdep_install_lockfile_contains_all_deps() {
-  mock curl "true"
+  # shellcheck disable=SC2016 # Single quotes intentional: $4 expands inside mock body, not here.
+  mock curl 'touch "$4"'
   BASHDEP_DIR="$TEST_DIR"
 
   bashdep::install \
     "https://example.com/aaa" \
     "https://example.com/bbb" >/dev/null
 
-  assert_file_contains "$TEST_DIR/.bashdep.lock" "aaa"
-  assert_file_contains "$TEST_DIR/.bashdep.lock" "bbb"
+  local lock
+  lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_contains "aaa" "$lock"
+  assert_contains "bbb" "$lock"
 }
 
 function test_bashdep_install_dev_lockfile_separated_from_main() {
   local main_dir="$TEST_DIR/main"
   local dev_dir="$TEST_DIR/dev"
   mkdir -p "$main_dir" "$dev_dir"
-  mock curl "true"
+  # shellcheck disable=SC2016 # Single quotes intentional: $4 expands inside mock body, not here.
+  mock curl 'touch "$4"'
   BASHDEP_DIR="$main_dir"
   BASHDEP_DEV_DIR="$dev_dir"
 
@@ -487,8 +491,11 @@ function test_bashdep_install_dev_lockfile_separated_from_main() {
     "https://example.com/runtime" \
     "https://example.com/devtool@dev" >/dev/null
 
-  assert_file_contains     "$main_dir/.bashdep.lock" "runtime"
-  assert_file_not_contains "$main_dir/.bashdep.lock" "devtool"
-  assert_file_contains     "$dev_dir/.bashdep.lock"  "devtool"
-  assert_file_not_contains "$dev_dir/.bashdep.lock"  "runtime"
+  local main_lock dev_lock
+  main_lock=$(cat "$main_dir/.bashdep.lock")
+  dev_lock=$(cat "$dev_dir/.bashdep.lock")
+  assert_contains     "runtime" "$main_lock"
+  assert_not_contains "devtool" "$main_lock"
+  assert_contains     "devtool" "$dev_lock"
+  assert_not_contains "runtime" "$dev_lock"
 }
