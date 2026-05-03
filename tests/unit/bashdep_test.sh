@@ -754,6 +754,47 @@ function test_bashdep_uninstall_dry_run_skips_actual_removal() {
   assert_file_exists "$TEST_DIR/.bashdep.lock"
 }
 
+function test_bashdep_self_update_writes_target_from_curl() {
+  local target="$TEST_DIR/bashdep_copy"
+  # shellcheck disable=SC2016
+  mock curl 'printf "NEW_BASHDEP_CONTENT\n" > "$4"'
+
+  bashdep::self_update main "$target" >/dev/null
+  assert_file_exists "$target"
+  assert_contains "NEW_BASHDEP_CONTENT" "$(cat "$target")"
+}
+
+function test_bashdep_self_update_dry_run_skips_write() {
+  local target="$TEST_DIR/bashdep_copy"
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::self_update main "$target")
+  assert_contains       "[dry-run]" "$output"
+  assert_file_not_exists "$target"
+}
+
+function test_bashdep_self_update_curl_failure_returns_nonzero() {
+  local target="$TEST_DIR/bashdep_copy"
+  mock curl "return 22"
+
+  bashdep::self_update main "$target" 2>/dev/null >/dev/null
+  assert_general_error
+  assert_file_not_exists "$target"
+}
+
+function test_bashdep_self_update_uses_url_template() {
+  local target="$TEST_DIR/bashdep_copy"
+  BASHDEP_SELF_URL_TEMPLATE="https://example.test/bashdep/%s"
+  # download_url contract: curl -fsSL <url> -o <dest> -> $2=url, $4=dest.
+  # shellcheck disable=SC2016
+  mock curl 'printf "from=%s\n" "$2" > "$4"'
+
+  bashdep::self_update v1.2.3 "$target" >/dev/null
+  assert_contains "from=https://example.test/bashdep/v1.2.3" "$(cat "$target")"
+}
+
 function test_bashdep_doctor_reports_orphan_files() {
   BASHDEP_DIR="$TEST_DIR"
   _seed_installed "$TEST_DIR" tracked https://example.com/tracked

@@ -9,10 +9,56 @@ BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
 BASHDEP_VERBOSE=false
+BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
 
 # Print bashdep version.
 function bashdep::version() {
   echo "$BASHDEP_VERSION"
+}
+
+# Re-download the bashdep script itself from the upstream repo.
+# Usage:
+#   bashdep::self_update [ref] [target_path]
+#
+# - ref         - Git ref (branch or tag). Default: main.
+# - target_path - Where to write. Default: the path this bashdep was
+#                 sourced from (BASH_SOURCE[0]).
+#
+# The download URL is built from BASHDEP_SELF_URL_TEMPLATE (a printf
+# format string with one %s slot for the ref). Honors dry-run mode.
+# Returns 1 on download or write failure.
+function bashdep::self_update() {
+  local ref=${1:-main}
+  local target=${2:-${BASH_SOURCE[0]}}
+  local url
+  # shellcheck disable=SC2059 # The template is intentionally user-controlled (env-overridable).
+  printf -v url "$BASHDEP_SELF_URL_TEMPLATE" "$ref"
+
+  if bashdep::is_dry_run; then
+    bashdep::_log "[dry-run] Would update '$target' from '$url'"
+    return 0
+  fi
+
+  local tmp
+  tmp=$(mktemp) || {
+    echo "Error: Could not create temp file for self_update." >&2
+    return 1
+  }
+
+  bashdep::_log "Updating '$target' from '$url'..."
+  if ! curl -fsSL "$url" -o "$tmp"; then
+    rm -f "$tmp"
+    echo "Error: failed to download bashdep from '$url'" >&2
+    return 1
+  fi
+
+  if ! mv "$tmp" "$target"; then
+    rm -f "$tmp"
+    echo "Error: failed to write '$target'" >&2
+    return 1
+  fi
+  chmod +x "$target"
+  bashdep::_log "> bashdep updated. Re-source the script to load the new version."
 }
 
 # Configure bashdep behavior.
