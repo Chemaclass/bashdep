@@ -22,6 +22,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   reference) and `docs/behavior.md` (lockfile, dev deps, error handling).
 - `bashdep::install_from <file>` reads a dependency list from disk; blank
   lines and `#` comments are ignored.
+- `release.sh` automates cutting a tagged release: bumps
+  `BASHDEP_VERSION`, rolls `CHANGELOG.md`, runs the test/sa/lint gates,
+  commits, tags, pushes, and creates a GitHub release with the `bashdep`
+  script attached as an asset. With no positional arg it auto-bumps the
+  minor version (`--major` / `--patch` switch the level). Also accepts
+  an explicit `X.Y.Z`. Supports `--dry-run`, `--force`, `--no-gh`,
+  `--remote=NAME`. Wired up via `make release` / `make release/dry-run`.
+  See `docs/releasing.md`.
 - `bashdep::list` prints every installed dependency from the lockfiles
   under `dir` and `dev-dir` (tab-separated `<path>\t<URL>` lines).
 - `bashdep::setup` accepts `dir`, `dev-dir`, `silent`, `force` parameters.

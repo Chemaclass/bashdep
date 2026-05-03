@@ -46,6 +46,8 @@ help:
 	@echo "  sa                       Run shellcheck static analysis tool"
 	@echo "  lint                     Run editorconfig linter tool"
 	@echo "  deps                     Install required test dependencies"
+	@echo "  release VERSION          Cut a release (runs release.sh)"
+	@echo "  release/dry-run VERSION  Preview release.sh with --dry-run"
 
 SRC_SCRIPTS_DIR=src
 PRE_COMMIT_SCRIPTS_FILE=./bin/pre-commit
@@ -78,3 +80,13 @@ endif
 
 deps:
 	bash install-dependencies.sh
+
+release:
+	@./release.sh $(filter-out $@,$(MAKECMDGOALS))
+
+release/dry-run:
+	@./release.sh $(filter-out $@,$(MAKECMDGOALS)) --dry-run
+
+# Swallow positional version arg so make doesn't try to build it as a target.
+%:
+	@:

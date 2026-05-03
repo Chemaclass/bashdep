@@ -16,11 +16,13 @@ Contributions are licensed under [MIT](../LICENSE).
 
 ```
 bashdep                     # Library entry point — sourced by consumers
+release.sh                  # Release automation (see docs/releasing.md)
 tests/unit/bashdep_test.sh  # Unit tests (bashunit)
 tests/unit/snapshots/       # Captured stdout for snapshot assertions
 example/demo.sh             # End-to-end demo
+docs/                       # API + behavior + releasing reference
 .github/workflows/          # CI: tests, ShellCheck, editorconfig
-Makefile                    # test / sa / lint / deps / pre_commit/install
+Makefile                    # test / sa / lint / deps / release / pre_commit/install
 ```
 
 The codebase is intentionally small and zero-runtime: only `curl`,
