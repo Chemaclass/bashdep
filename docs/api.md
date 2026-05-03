@@ -1,0 +1,88 @@
+# API reference
+
+Public functions exposed by `source lib/bashdep`.
+
+- [`bashdep::install`](#bashdepinstall)
+- [`bashdep::install_from`](#bashdepinstall_from)
+- [`bashdep::setup`](#bashdepsetup)
+- [`bashdep::list`](#bashdeplist)
+- [`bashdep::version`](#bashdepversion)
+
+## `bashdep::install`
+
+Download each dependency in the list into the configured directories.
+
+```bash
+DEPENDENCIES=(
+  "https://example.com/runtime.sh"
+  "https://example.com/dev-tool.sh@dev"
+)
+bashdep::install "${DEPENDENCIES[@]}"
+```
+
+Returns the number of failed downloads (0 on success, capped at 255).
+
+## `bashdep::install_from`
+
+Read a dependency list from a file and install every entry. One URL per
+line; blank lines and `#` comments are ignored; leading/trailing
+whitespace is stripped.
+
+```bash
+bashdep::install_from .bashdep
+```
+
+Example `.bashdep`:
+
+```
+# Runtime
+https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+
+# Dev tools
+https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
+```
+
+Returns `1` if the file is missing or unreadable; otherwise propagates
+the failure count from `bashdep::install`.
+
+## `bashdep::setup`
+
+Configure defaults before calling `install`. All parameters are optional.
+
+| Param     | Type   | Default   | Purpose                                                |
+| --------- | ------ | --------- | ------------------------------------------------------ |
+| `dir`     | string | `lib`     | Destination for normal dependencies.                   |
+| `dev-dir` | string | `lib/dev` | Destination for dev dependencies (URLs ending `@dev`). |
+| `silent`  | bool   | `false`   | Suppress progress output.                              |
+| `force`   | bool   | `false`   | Re-download even when the file already exists.         |
+
+```bash
+bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
+```
+
+Invalid values (unknown param, non-boolean for `silent`/`force`) cause
+`setup` to print an error to stderr and return `1`.
+
+## `bashdep::list`
+
+Print every installed dependency recorded in the lockfiles under `dir`
+and `dev-dir`. One entry per line, tab-separated: `<path>\t<source URL>`.
+Pass extra directories as positional arguments to include them too.
+
+```bash
+$ bashdep::list
+lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+lib/create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh
+```
+
+Pipe into `awk` / `cut` for audit and diff tooling.
+
+## `bashdep::version`
+
+Print the bashdep version.
+
+```bash
+bashdep::version  # 0.3.0
+```

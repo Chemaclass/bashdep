@@ -1,111 +1,112 @@
 # Contributing
 
-## We have a Code of Conduct
+Thanks for considering a contribution. This guide covers project layout,
+how to run the suite, and the conventions we follow.
 
-Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
-By participating in this project you agree to abide by its terms.
+## Code of Conduct
 
-## Any contributions you make will be under the MIT License
+This project follows a [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
+By participating you agree to abide by its terms.
 
-When you submit code changes, your submissions are understood to be under the
-same [MIT](../LICENSE) that covers the project. By contributing to this
-project, you agree that your contributions will be licensed under its MIT.
+## License
 
-## Write bug reports with detail, background, and sample code
+Contributions are licensed under [MIT](../LICENSE).
 
-In your bug report, please provide the following:
+## Project layout
 
-* A quick summary and/or background
-* Steps to reproduce
-  * Be specific!
-  * Give sample code if you can.
-* What you expected would happen
-* What actually happens
-* Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
+```
+bashdep                     # Library entry point — sourced by consumers
+tests/unit/bashdep_test.sh  # Unit tests (bashunit)
+tests/unit/snapshots/       # Captured stdout for snapshot assertions
+example/demo.sh             # End-to-end demo
+.github/workflows/          # CI: tests, ShellCheck, editorconfig
+Makefile                    # test / sa / lint / deps / pre_commit/install
+```
 
-Please post code and output as text ([using proper markup](https://guides.github.com/features/mastering-markdown/)).
-Additional screenshots to help contextualize behavior are ok.
+The codebase is intentionally small and zero-runtime: only `curl`,
+`awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run on
+bash 3.2+ (default macOS) and bash 4+ (Linux CI).
 
-## Workflow for Pull Requests
+## Workflow for pull requests
 
-1. Fork/clone the repository.
-2. Create your branch from `main` if you plan to implement new functionality or change existing code significantly.
-3. Implement your change and add tests for it.
-4. Ensure the test suite passes.
-5. Ensure the code complies with our coding guidelines (see below).
-6. Send that pull request!
+1. Fork/clone, branch from `main`.
+2. Implement the change and add tests for it.
+3. Run `make pre_commit/run` (test + ShellCheck + editorconfig).
+4. Open the PR with a short summary and a test plan.
 
-Please make sure you have [set up your username and email address](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup) for
-use with Git. Strings such as `silly nick name <root@localhost>` looks bad in the commit history of a project.
+Set your git `user.name` / `user.email` so commit history stays clean:
+see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
 
+## Bug reports
 
----
+Please include:
 
-## Development
-
-- Entry point: `bashdep` (sourced by consumers as a library).
+- Summary and what you expected.
+- Steps to reproduce (sample code beats prose).
+- Actual output, pasted as text.
+- Environment: OS, `bash --version`.
 
 ## Testing
 
-Install dependencies: `make deps` (or `./install-dependencies.sh`).
-
-Run tests:
+Install dev dependencies (bashunit, pinned to the CI version):
 
 ```bash
-# using make
-make test
+make deps
+```
 
-# using bashunit directly
+Run the suite:
+
+```bash
+make test
+# or directly:
 lib/bashunit tests
 ```
 
-## Coding Guidelines
+Conventions in `tests/unit/bashdep_test.sh`:
+
+- One test per behavior. Names describe the assertion (`test_bashdep_…`).
+- Pure-logic tests (no filesystem) sit at the top of the file.
+- Filesystem tests use `$TEST_DIR` (a `mktemp -d` set up in `set_up`,
+  cleaned in `tear_down`). Use the `_seed_lock` / `_seed_installed`
+  helpers to scaffold lockfile fixtures.
+- Snapshot tests keep hardcoded `/tmp/test_<name>` paths because the
+  snapshot embeds the path. Don't migrate those to `$TEST_DIR`.
+
+## Coding guidelines
 
 ### ShellCheck
 
-To contribute to this repository you must have [ShellCheck](https://github.com/koalaman/shellcheck) installed on your
-local machine or IDE, since it is the static code analyzer that is being used in continuous integration pipelines.
-
-Installation: https://github.com/koalaman/shellcheck#installing
-
-#### Example of usage
+Install: <https://github.com/koalaman/shellcheck#installing>
 
 ```bash
-# using make
 make sa
-
-# using ShellCheck itself
-shellcheck ./**/**/*.sh -C
 ```
+
+`make sa` discovers scripts via `find` and matches CI scope: `bashdep`,
+`bin/pre-commit`, and every `*.sh` outside `vendor/`, `lib/`, `local/`.
 
 ### editorconfig-checker
 
-To contribute to this repository, consider installing [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker)
-to check all project files regarding the `.editorconfig` to ensure we all fulfill the standard.
-
-Installation: https://github.com/editorconfig-checker/editorconfig-checker#installation
-
-To run it, use the following command:
+Install: <https://github.com/editorconfig-checker/editorconfig-checker#installation>
 
 ```bash
-# using make
 make lint
-
-# using editorconfig-checker itself
-ec -config .editorconfig
 ```
 
-This command will be executed on the CI to ensure the project's quality standards.
+### Pre-commit hook (recommended)
 
-#### We recommend
-
-To install the pre-commit of the project with the following command:
-
-**Please note that you will need to have ShellCheck and editorconfig-checker installed on your computer.**
-See above how to install in your local.
+Requires ShellCheck and editorconfig-checker on `$PATH`.
 
 ```bash
 make pre_commit/install
 ```
 
-[Shell Guide](https://google.github.io/styleguide/shellguide.html#s7.2-variable-names) by Google Conventions.
+Runs `make pre_commit/run` (test + sa + lint) on every commit.
+
+### Style
+
+We follow Google's
+[Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
+where it doesn't conflict with this repo's conventions:
+`function name() { … }`, snake_case, and the `bashdep::` namespace
+prefix on every public function.
