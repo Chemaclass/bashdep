@@ -6,26 +6,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
-- `<dest>/.bashdep.lock` records the source URL of each installed dependency.
-- Internal helpers `bashdep::_lock_get` / `bashdep::_lock_set` /
-  `bashdep::_classify_dep` / `bashdep::_should_skip_download` / `bashdep::_log`.
-- `bashdep::setup` with `dir`, `dev-dir`, `silent`, `force` parameters.
+- `bashdep::install_from <file>` reads a dependency list from disk; blank
+  lines and `#` comments are ignored.
 - `bashdep::list` prints every installed dependency from the lockfiles
   under `dir` and `dev-dir` (tab-separated `<path>\t<URL>` lines).
-- `@dev` URL suffix routes a dependency to `dev-dir`.
+- `bashdep::setup` accepts `dir`, `dev-dir`, `silent`, `force` parameters.
 - `bashdep::version` prints the current version.
+- `@dev` URL suffix routes a dependency to `dev-dir`.
+- Per-directory `.bashdep.lock` records the source URL of each installed
+  dependency.
 
 ### Changed
 
-- `bashdep::install` is now idempotent **per source URL**, not per filename.
+- `bashdep::install` is idempotent **per source URL**, not per filename.
   A release bump (e.g. `0.17.0` → `0.18.0`) re-downloads even when the
-  basename is unchanged.
-- Pre-existing files without a lock entry are re-downloaded once on first
-  run after upgrade to populate the lockfile.
-- Strict error handling: `download_url` / `setup_directory` return non-zero
-  on failure; `install` returns the failure count (capped at 255).
+  basename is unchanged. Pre-existing files without a lock entry are
+  re-downloaded once after upgrade to populate the lockfile.
+- `bashdep::install` returns the failure count, capped at 255.
 - `download_url` surfaces the `curl` exit code in its error message.
-- `BASHDEP_VERSION` set to `0.3.0` (in-tree; not yet released).
+- Strict error handling: `download_url` / `setup_directory` return
+  non-zero on failure.
 
 ## [0.1]
 

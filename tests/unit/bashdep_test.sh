@@ -521,6 +521,86 @@ function test_bashdep_install_lockfile_contains_all_deps() {
   assert_contains "bbb" "$lock"
 }
 
+function test_bashdep_install_from_requires_file_arg() {
+  bashdep::install_from "" 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_install_from_errors_on_missing_file() {
+  bashdep::install_from "$TEST_DIR/does_not_exist" 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_install_from_passes_each_url_to_install() {
+  local file="$TEST_DIR/.bashdep"
+  cat > "$file" <<'EOF'
+https://example.com/aaa
+https://example.com/bbb
+EOF
+  mock bashdep::install "echo install \"\$@\""
+
+  local output
+  output=$(bashdep::install_from "$file")
+  assert_contains "https://example.com/aaa" "$output"
+  assert_contains "https://example.com/bbb" "$output"
+}
+
+function test_bashdep_install_from_skips_comments_and_blanks() {
+  local file="$TEST_DIR/.bashdep"
+  cat > "$file" <<'EOF'
+# top comment
+
+https://example.com/aaa
+  # indented comment
+
+https://example.com/bbb
+EOF
+  mock bashdep::install "echo install \"\$@\""
+
+  local output
+  output=$(bashdep::install_from "$file")
+  assert_not_contains "comment" "$output"
+  assert_contains     "https://example.com/aaa" "$output"
+  assert_contains     "https://example.com/bbb" "$output"
+}
+
+function test_bashdep_install_from_strips_whitespace() {
+  local file="$TEST_DIR/.bashdep"
+  printf '  https://example.com/aaa  \n\thttps://example.com/bbb\t\n' > "$file"
+  # shellcheck disable=SC2016
+  mock bashdep::install 'for d in "$@"; do printf "[%s]\n" "$d"; done'
+
+  local output
+  output=$(bashdep::install_from "$file")
+  assert_contains "[https://example.com/aaa]" "$output"
+  assert_contains "[https://example.com/bbb]" "$output"
+}
+
+function test_bashdep_install_from_empty_file_returns_zero() {
+  local file="$TEST_DIR/.bashdep"
+  : > "$file"
+  mock bashdep::install "echo SHOULD_NOT_RUN"
+
+  local output
+  output=$(bashdep::install_from "$file")
+  bashdep::install_from "$file"
+  assert_successful_code "$?"
+  assert_not_contains "SHOULD_NOT_RUN" "$output"
+}
+
+function test_bashdep_install_from_propagates_failure_count() {
+  local file="$TEST_DIR/.bashdep"
+  cat > "$file" <<'EOF'
+https://example.com/a
+https://example.com/b
+EOF
+  mock bashdep::setup_directory "return 0"
+  mock bashdep::download_url "return 1"
+
+  bashdep::install_from "$file"
+  assert_equals 2 "$?"
+}
+
 function test_bashdep_list_empty_when_no_lockfiles() {
   BASHDEP_DIR="$TEST_DIR/empty_main"
   BASHDEP_DEV_DIR="$TEST_DIR/empty_dev"

@@ -16,21 +16,29 @@ from your scripts.
 - [Quick start](#quick-start)
 - [API](#api)
   - [`bashdep::install`](#bashdepinstall)
+  - [`bashdep::install_from`](#bashdepinstall_from)
   - [`bashdep::setup`](#bashdepsetup)
   - [`bashdep::list`](#bashdeplist)
   - [`bashdep::version`](#bashdepversion)
 - [Behavior](#behavior)
-  - [Skip vs. force re-download](#skip-vs-force-re-download)
+  - [Lockfile and idempotency](#lockfile-and-idempotency)
   - [Dev dependencies](#dev-dependencies)
   - [Error handling](#error-handling)
 - [Development](#development)
 
 ## Why bashdep?
 
-Most bash projects vendor scripts by hand: `curl`, `chmod +x`, repeat. bashdep
-turns that into one declarative list with sensible defaults: idempotent
-installs, dev/prod separation via the `@dev` suffix, and a single `force` flag
-to force a refresh. No package registry, no lockfile, no runtime — just `curl`.
+Most bash projects vendor scripts by hand: `curl`, `chmod +x`, repeat.
+bashdep turns that into one declarative list with sensible defaults:
+
+- Idempotent installs via a per-directory `.bashdep.lock`. Bumping a
+  release URL re-downloads automatically; same URL is skipped.
+- Dev/prod separation via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
+- One `force=true` flag for full refreshes.
+- Read deps from a file (`bashdep::install_from .bashdep`) or pass an
+  array directly.
+
+No package registry, no runtime — just `curl`.
 
 ## Install
 
@@ -46,22 +54,27 @@ Then `source lib/bashdep` from your install script.
 
 ## Quick start
 
+Declare your deps in a `.bashdep` file:
+
+```
+# .bashdep
+https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
+```
+
+Then in your install script:
+
 ```bash
 #!/bin/bash
 set -euo pipefail
 
 source lib/bashdep
-
-DEPENDENCIES=(
-  "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
-  "https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr"
-  "https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev"
-)
-
-bashdep::install "${DEPENDENCIES[@]}"
+bashdep::install_from .bashdep
 ```
 
-Run it, and bashdep prints:
+First run downloads everything and writes `.bashdep.lock` in each
+destination directory:
 
 ```
 Downloading 'bashunit' to 'lib'...
@@ -72,24 +85,46 @@ Downloading 'dumper.sh' to 'lib/dev'...
 > dumper.sh installed successfully in 'lib/dev'
 ```
 
-Re-run it and previously-installed files are skipped:
+Re-runs skip already-installed deps; bumping a URL version re-downloads
+the affected entry only:
 
 ```
 > bashunit already exists in 'lib', skipping.
+> create-pr already exists in 'lib', skipping.
+> dumper.sh already exists in 'lib/dev', skipping.
 ```
+
+Prefer an inline array? Pass it to `bashdep::install` directly — see
+[`bashdep::install`](#bashdepinstall).
 
 ## API
 
 ### `bashdep::install`
 
-Download every dependency in the list into the configured directories.
+Download each dependency in the list into the configured directories.
 
 ```bash
+DEPENDENCIES=(
+  "https://example.com/runtime.sh"
+  "https://example.com/dev-tool.sh@dev"
+)
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-Returns the number of failed downloads (0 on success). Pair with
-`set -e` or check `$?` to gate the rest of your script.
+Returns the number of failed downloads (0 on success, capped at 255).
+
+### `bashdep::install_from`
+
+Read a dependency list from a file and install every entry. One URL per
+line; blank lines and `#` comments are ignored; leading/trailing
+whitespace is stripped.
+
+```bash
+bashdep::install_from .bashdep
+```
+
+Returns `1` if the file is missing or unreadable; otherwise propagates
+the failure count from `bashdep::install`.
 
 ### `bashdep::setup`
 
@@ -111,16 +146,18 @@ Invalid values (unknown param, non-boolean for `silent`/`force`) cause
 
 ### `bashdep::list`
 
-Print every dependency recorded in the lockfiles under `dir` and `dev-dir`.
-One entry per line, tab-separated: `<path>\t<source URL>`. Pass extra
-directories as positional arguments to include their lockfiles too.
+Print every installed dependency recorded in the lockfiles under `dir`
+and `dev-dir`. One entry per line, tab-separated: `<path>\t<source URL>`.
+Pass extra directories as positional arguments to include them too.
 
 ```bash
-bashdep::list
-# lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
-# lib/create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
-# lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh
+$ bashdep::list
+lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+lib/create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh
 ```
+
+Pipe into `awk` / `cut` for audit and diff tooling.
 
 ### `bashdep::version`
 
@@ -132,11 +169,11 @@ bashdep::version  # 0.3.0
 
 ## Behavior
 
-### Skip vs. force re-download
+### Lockfile and idempotency
 
-`bashdep::install` is idempotent **per source URL**, not per filename. The
-first install writes a `.bashdep.lock` file in each destination directory
-recording every dependency's source URL:
+`bashdep::install` is idempotent **per source URL**, not per filename.
+Each destination directory gets a `.bashdep.lock` recording the URL of
+every dependency installed there:
 
 ```
 # lib/.bashdep.lock
@@ -144,40 +181,46 @@ bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
 create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 ```
 
-On subsequent runs, a dependency is skipped only when the file is present
-**and** the lockfile records the same URL. Bumping a release in the URL
-(e.g. `0.17.0` → `0.18.0`) triggers a re-download even though the basename
-is unchanged.
+Skip rules on subsequent runs:
 
-Pass `force=true` to refresh regardless of the lockfile:
+| File present | Lock URL matches | `force` | Action      |
+| :----------: | :--------------: | :-----: | ----------- |
+|     yes      |       yes        |   no    | skip        |
+|     yes      |        no        |   no    | re-download |
+|      no      |        —         |    —    | re-download |
+|     yes      |       yes        |   yes   | re-download |
 
-```bash
-bashdep::setup force=true
-bashdep::install "${DEPENDENCIES[@]}"
-```
+Bumping a release in the URL (`0.17.0` → `0.18.0`) re-downloads the
+affected entry only; nothing else is touched.
 
-Commit `.bashdep.lock` alongside your install script so collaborators get the
-same versions you do.
+Commit `.bashdep.lock` alongside your install script so collaborators
+get the same versions you do.
 
 ### Dev dependencies
 
-A URL ending in `@dev` is treated as a development-only dependency and
-installed into `dev-dir` instead of `dir`:
+A URL ending in `@dev` routes to `dev-dir` instead of `dir`:
 
 ```bash
 DEPENDENCIES=(
-  "https://example.com/runtime.sh"          # → lib/
-  "https://example.com/dev-tool.sh@dev"     # → lib/dev/
+  "https://example.com/runtime.sh"        # → lib/
+  "https://example.com/dev-tool.sh@dev"   # → lib/dev/
 )
 ```
 
+Each directory keeps its own `.bashdep.lock`.
+
 ### Error handling
 
-- `download_url` returns `1` and prints to stderr on `curl` failure or missing URL.
-- `install` keeps going through the list and returns the number of failures.
-- `setup_directory` returns `1` if it cannot create the destination dir.
+- `bashdep::install` continues past failed downloads and returns the
+  failure count (capped at 255).
+- `bashdep::install_from` returns `1` if the file is missing or
+  unreadable.
+- `bashdep::setup` returns `1` on unknown params or non-boolean values
+  for `silent` / `force`.
+- `curl` failures print the exit code to stderr (e.g. `22` = HTTP error,
+  `6` = DNS, `7` = connect refused).
 
-Use `set -e` plus `bashdep::install ... || exit $?` to fail fast in scripts.
+Pair with `set -euo pipefail` and `|| exit $?` to fail fast.
 
 ## Development
 
