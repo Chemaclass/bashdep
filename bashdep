@@ -110,6 +110,38 @@ function bashdep::uninstall() {
   return $(( missing > 255 ? 255 : missing ))
 }
 
+# Remove orphan files: anything in BASHDEP_DIR or BASHDEP_DEV_DIR that
+# isn't recorded in the local .bashdep.lock and isn't the lockfile itself.
+# Skips directories with no lockfile (a missing lockfile is treated as
+# 'don't manage this dir', not 'every file is an orphan').
+# In dry-run mode, prints intended removals without touching disk.
+# Returns 0 always; failures from individual rm calls are not propagated.
+function bashdep::clean() {
+  local removed=0
+  local dir lock_file file_path file_name seen=""
+  for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
+    [[ -z "$dir" || ! -d "$dir" ]] && continue
+    case ":$seen:" in *":$dir:"*) continue ;; esac
+    seen="$seen:$dir"
+    lock_file="$dir/$BASHDEP_LOCK_FILE"
+    [[ -f "$lock_file" ]] || continue
+    for file_path in "$dir"/*; do
+      [[ -f "$file_path" ]] || continue
+      file_name="${file_path##*/}"
+      [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      [[ -n "$(bashdep::_lock_get "$lock_file" "$file_name")" ]] && continue
+      if bashdep::is_dry_run; then
+        bashdep::_log "[dry-run] Would remove orphan '$file_path'"
+      else
+        rm -f "$file_path"
+        bashdep::_log "> removed orphan '$file_path'"
+      fi
+      removed=$((removed + 1))
+    done
+  done
+  bashdep::_log "Cleaned $removed orphan(s)."
+}
+
 # Print installed dependencies recorded in lockfiles under BASHDEP_DIR and
 # BASHDEP_DEV_DIR. One entry per line, tab-separated: <path>\t<source URL>.
 # Skips directories without a lockfile. Pass extra dirs as arguments.
