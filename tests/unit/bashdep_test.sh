@@ -754,6 +754,62 @@ function test_bashdep_uninstall_dry_run_skips_actual_removal() {
   assert_file_exists "$TEST_DIR/.bashdep.lock"
 }
 
+function test_bashdep_doctor_reports_orphan_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+
+  local output
+  output=$(bashdep::doctor)
+  local rc=$?
+  assert_contains "orphan file" "$output"
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_doctor_reports_missing_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  printf 'gone\thttps://example.com/gone\n' > "$TEST_DIR/.bashdep.lock"
+
+  local output
+  output=$(bashdep::doctor)
+  local rc=$?
+  assert_contains "missing file" "$output"
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_doctor_ok_when_consistent() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+
+  local output
+  output=$(bashdep::doctor)
+  assert_successful_code "$?"
+  assert_contains "OK" "$output"
+}
+
+function test_bashdep_doctor_skips_dir_without_lockfile() {
+  BASHDEP_DIR="$TEST_DIR"
+  touch "$TEST_DIR/free_file"
+
+  local output
+  output=$(bashdep::doctor)
+  assert_successful_code "$?"
+  assert_contains "skip" "$output"
+}
+
+function test_bashdep_doctor_counts_issues_across_dirs() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  _seed_installed "$BASHDEP_DIR"     a https://example.com/a
+  _seed_installed "$BASHDEP_DEV_DIR" b https://example.com/b
+  touch "$BASHDEP_DIR/orphan_main"
+  printf 'gone\thttps://example.com/gone\n' >> "$BASHDEP_DEV_DIR/.bashdep.lock"
+
+  bashdep::doctor >/dev/null
+  assert_equals 2 "$?"
+}
+
 function test_bashdep_clean_removes_orphan_files() {
   BASHDEP_DIR="$TEST_DIR"
   _seed_installed "$TEST_DIR" tracked https://example.com/tracked

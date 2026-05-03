@@ -142,6 +142,49 @@ function bashdep::clean() {
   bashdep::_log "Cleaned $removed orphan(s)."
 }
 
+# Check each managed directory for consistency. Reports two kinds of issues:
+#   - Lockfile entries whose file is missing on disk.
+#   - Files on disk that have no lockfile entry (orphans).
+# Prints findings to stdout (suppressed by silent=true). Returns the issue
+# count, capped at 255. Returns 0 when everything is consistent.
+function bashdep::doctor() {
+  local issues=0
+  local dir lock_file file_path file_name entry_name entry_url seen=""
+  for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
+    [[ -z "$dir" || ! -d "$dir" ]] && continue
+    case ":$seen:" in *":$dir:"*) continue ;; esac
+    seen="$seen:$dir"
+    lock_file="$dir/$BASHDEP_LOCK_FILE"
+    if [[ ! -f "$lock_file" ]]; then
+      bashdep::_log "skip: '$dir' (no lockfile)"
+      continue
+    fi
+    bashdep::_log "checking '$dir'..."
+    while IFS=$'\t' read -r entry_name entry_url; do
+      [[ -z "$entry_name" ]] && continue
+      if [[ ! -f "$dir/$entry_name" ]]; then
+        bashdep::_log "  missing file for '$entry_name' (url: $entry_url)"
+        issues=$((issues + 1))
+      fi
+    done < "$lock_file"
+    for file_path in "$dir"/*; do
+      [[ -f "$file_path" ]] || continue
+      file_name="${file_path##*/}"
+      [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      if [[ -z "$(bashdep::_lock_get "$lock_file" "$file_name")" ]]; then
+        bashdep::_log "  orphan file '$file_path' (no lockfile entry)"
+        issues=$((issues + 1))
+      fi
+    done
+  done
+  if [[ $issues -eq 0 ]]; then
+    bashdep::_log "doctor: OK (no inconsistencies)"
+    return 0
+  fi
+  bashdep::_log "doctor: $issues issue(s) found"
+  return $(( issues > 255 ? 255 : issues ))
+}
+
 # Print installed dependencies recorded in lockfiles under BASHDEP_DIR and
 # BASHDEP_DEV_DIR. One entry per line, tab-separated: <path>\t<source URL>.
 # Skips directories without a lockfile. Pass extra dirs as arguments.
