@@ -157,13 +157,15 @@ function bashdep::uninstall() {
 }
 
 # Remove orphan files: anything in BASHDEP_DIR or BASHDEP_DEV_DIR that
-# isn't recorded in the local .bashdep.lock and isn't the lockfile itself.
-# Skips directories with no lockfile (a missing lockfile is treated as
-# 'don't manage this dir', not 'every file is an orphan').
-# In dry-run mode, prints intended removals without touching disk.
-# Returns 0 always; failures from individual rm calls are not propagated.
+# isn't recorded in the local .bashdep.lock and isn't the lockfile or the
+# bashdep script itself. Skips directories with no lockfile (a missing
+# lockfile is treated as 'don't manage this dir', not 'every file is an
+# orphan'). In dry-run mode, prints intended removals without touching
+# disk. Returns 0 always; failures from individual rm calls are not
+# propagated.
 function bashdep::clean() {
   local removed=0
+  local self_name="${BASH_SOURCE[0]##*/}"
   local dir lock_file file_path file_name seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
     [[ -z "$dir" || ! -d "$dir" ]] && continue
@@ -175,6 +177,7 @@ function bashdep::clean() {
       [[ -f "$file_path" ]] || continue
       file_name="${file_path##*/}"
       [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      [[ "$file_name" == "$self_name" ]] && continue
       [[ -n "$(bashdep::_lock_get "$lock_file" "$file_name")" ]] && continue
       if bashdep::is_dry_run; then
         bashdep::_log "[dry-run] Would remove orphan '$file_path'"
@@ -195,6 +198,7 @@ function bashdep::clean() {
 # count, capped at 255. Returns 0 when everything is consistent.
 function bashdep::doctor() {
   local issues=0
+  local self_name="${BASH_SOURCE[0]##*/}"
   local dir lock_file file_path file_name entry_name entry_url seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
     [[ -z "$dir" || ! -d "$dir" ]] && continue
@@ -217,6 +221,7 @@ function bashdep::doctor() {
       [[ -f "$file_path" ]] || continue
       file_name="${file_path##*/}"
       [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      [[ "$file_name" == "$self_name" ]] && continue
       if [[ -z "$(bashdep::_lock_get "$lock_file" "$file_name")" ]]; then
         bashdep::_log "  orphan file '$file_path' (no lockfile entry)"
         issues=$((issues + 1))
