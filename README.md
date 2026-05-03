@@ -17,6 +17,7 @@ from your scripts.
 - [API](#api)
   - [`bashdep::install`](#bashdepinstall)
   - [`bashdep::setup`](#bashdepsetup)
+  - [`bashdep::list`](#bashdeplist)
   - [`bashdep::version`](#bashdepversion)
 - [Behavior](#behavior)
   - [Skip vs. force re-download](#skip-vs-force-re-download)
@@ -107,6 +108,19 @@ bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
 
 Invalid values (unknown param, non-boolean for `silent`/`force`) cause
 `setup` to print an error to stderr and return `1`.
+
+### `bashdep::list`
+
+Print every dependency recorded in the lockfiles under `dir` and `dev-dir`.
+One entry per line, tab-separated: `<path>\t<source URL>`. Pass extra
+directories as positional arguments to include their lockfiles too.
+
+```bash
+bashdep::list
+# lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+# lib/create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+# lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh
+```
 
 ### `bashdep::version`
 

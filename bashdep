@@ -41,6 +41,23 @@ function bashdep::setup() {
   done
 }
 
+# Print installed dependencies recorded in lockfiles under BASHDEP_DIR and
+# BASHDEP_DEV_DIR. One entry per line, tab-separated: <path>\t<source URL>.
+# Skips directories without a lockfile. Pass extra dirs as arguments.
+function bashdep::list() {
+  local dirs=("$BASHDEP_DIR" "$BASHDEP_DEV_DIR" "$@")
+  local seen=""
+  local dir lock_file
+  for dir in "${dirs[@]}"; do
+    [[ -z "$dir" ]] && continue
+    case ":$seen:" in *":$dir:"*) continue ;; esac
+    seen="$seen:$dir"
+    lock_file="$dir/$BASHDEP_LOCK_FILE"
+    [[ -f "$lock_file" ]] || continue
+    awk -F '\t' -v dir="$dir" 'NF >= 2 { printf "%s/%s\t%s\n", dir, $1, $2 }' "$lock_file"
+  done
+}
+
 # Download and install all dependencies.
 # Returns 0 if all succeed, otherwise the number of failures (capped at 255
 # since bash return codes are 8-bit).

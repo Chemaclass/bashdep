@@ -521,6 +521,64 @@ function test_bashdep_install_lockfile_contains_all_deps() {
   assert_contains "bbb" "$lock"
 }
 
+function test_bashdep_list_empty_when_no_lockfiles() {
+  BASHDEP_DIR="$TEST_DIR/empty_main"
+  BASHDEP_DEV_DIR="$TEST_DIR/empty_dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  assert_empty "$(bashdep::list)"
+}
+
+function test_bashdep_list_returns_entries_from_main_dir() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR"
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' \
+    > "$BASHDEP_DIR/.bashdep.lock"
+
+  local output
+  output=$(bashdep::list)
+  assert_contains "$BASHDEP_DIR/aaa	https://example.com/aaa" "$output"
+  assert_contains "$BASHDEP_DIR/bbb	https://example.com/bbb" "$output"
+}
+
+function test_bashdep_list_combines_main_and_dev_lockfiles() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  printf 'runtime\thttps://example.com/runtime\n' > "$BASHDEP_DIR/.bashdep.lock"
+  printf 'devtool\thttps://example.com/devtool\n' > "$BASHDEP_DEV_DIR/.bashdep.lock"
+
+  local output
+  output=$(bashdep::list)
+  assert_contains "$BASHDEP_DIR/runtime"    "$output"
+  assert_contains "$BASHDEP_DEV_DIR/devtool" "$output"
+}
+
+function test_bashdep_list_deduplicates_when_dir_equals_dev_dir() {
+  BASHDEP_DIR="$TEST_DIR/shared"
+  BASHDEP_DEV_DIR="$TEST_DIR/shared"
+  mkdir -p "$BASHDEP_DIR"
+  printf 'tool\thttps://example.com/tool\n' > "$BASHDEP_DIR/.bashdep.lock"
+
+  local count
+  count=$(bashdep::list | wc -l | tr -d ' ')
+  assert_equals "1" "$count"
+}
+
+function test_bashdep_list_includes_extra_dirs_passed_as_args() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  local extra="$TEST_DIR/extra"
+  mkdir -p "$BASHDEP_DIR" "$extra"
+  printf 'main\thttps://example.com/main\n'  > "$BASHDEP_DIR/.bashdep.lock"
+  printf 'extra\thttps://example.com/extra\n' > "$extra/.bashdep.lock"
+
+  local output
+  output=$(bashdep::list "$extra")
+  assert_contains "$BASHDEP_DIR/main"  "$output"
+  assert_contains "$extra/extra"        "$output"
+}
+
 function test_bashdep_install_dev_lockfile_separated_from_main() {
   local main_dir="$TEST_DIR/main"
   local dev_dir="$TEST_DIR/dev"

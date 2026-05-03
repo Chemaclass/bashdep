@@ -7,8 +7,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ### Added
 
 - `<dest>/.bashdep.lock` records the source URL of each installed dependency.
-- Internal helpers `bashdep::_lock_get` / `bashdep::_lock_set`.
+- Internal helpers `bashdep::_lock_get` / `bashdep::_lock_set` /
+  `bashdep::_classify_dep` / `bashdep::_should_skip_download` / `bashdep::_log`.
 - `bashdep::setup` with `dir`, `dev-dir`, `silent`, `force` parameters.
+- `bashdep::list` prints every installed dependency from the lockfiles
+  under `dir` and `dev-dir` (tab-separated `<path>\t<URL>` lines).
 - `@dev` URL suffix routes a dependency to `dev-dir`.
 - `bashdep::version` prints the current version.
 
@@ -20,7 +23,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Pre-existing files without a lock entry are re-downloaded once on first
   run after upgrade to populate the lockfile.
 - Strict error handling: `download_url` / `setup_directory` return non-zero
-  on failure; `install` returns the failure count.
+  on failure; `install` returns the failure count (capped at 255).
+- `download_url` surfaces the `curl` exit code in its error message.
 - `BASHDEP_VERSION` set to `0.3.0` (in-tree; not yet released).
 
 ## [0.1]
