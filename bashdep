@@ -1,9 +1,10 @@
 #!/bin/bash
 
-BASHDEP_VERSION="0.2.0"
+BASHDEP_VERSION="0.3.0"
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
+BASHDEP_LOCK_FILE=".bashdep.lock"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 
@@ -44,22 +45,29 @@ function bashdep::setup() {
 # Returns 0 if all succeed, otherwise the number of failures.
 function bashdep::install() {
   local dependencies=("$@")
-  local url destination_dir failures=0
+  local failures=0
 
   for dep in "${dependencies[@]}"; do
-    if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
-      url="${dep%"$BASHDEP_DEV_SUFFIX"}"
-      destination_dir="$BASHDEP_DEV_DIR"
-    else
-      url="$dep"
-      destination_dir="$BASHDEP_DIR"
-    fi
-
-    bashdep::setup_directory "$destination_dir" || { failures=$((failures + 1)); continue; }
-    bashdep::download_url "$url" "$destination_dir" || failures=$((failures + 1))
+    bashdep::_classify_dep "$dep"
+    bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
+    bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
   done
 
   return "$failures"
+}
+
+# Internal: classify a dependency string into URL and target directory.
+# A dep ending in $BASHDEP_DEV_SUFFIX routes to $BASHDEP_DEV_DIR; otherwise $BASHDEP_DIR.
+# Sets BASHDEP_DEP_URL and BASHDEP_DEP_DIR. Pure (no I/O).
+function bashdep::_classify_dep() {
+  local dep=$1
+  if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
+    BASHDEP_DEP_URL="${dep%"$BASHDEP_DEV_SUFFIX"}"
+    BASHDEP_DEP_DIR="$BASHDEP_DEV_DIR"
+  else
+    BASHDEP_DEP_URL="$dep"
+    BASHDEP_DEP_DIR="$BASHDEP_DIR"
+  fi
 }
 
 # Ensure destination directory exists. Create it if missing.
@@ -81,7 +89,9 @@ function bashdep::setup_directory() {
 }
 
 # Download a URL to the destination directory.
-# Skips when the file already exists, unless force=true is configured.
+# Idempotent per source URL: skips when the destination already has the same
+# URL recorded in `.bashdep.lock`. Re-downloads when the URL changes (e.g.
+# new release version) or when force=true is configured.
 # Returns 1 on missing URL or curl failure.
 function bashdep::download_url() {
   local url=$1
@@ -92,38 +102,51 @@ function bashdep::download_url() {
     return 1
   fi
 
-  local file_name
-  file_name=$(basename "$url")
+  local file_name="${url##*/}"
   local destination_file="$destination_dir/$file_name"
+  local lock_file="$destination_dir/$BASHDEP_LOCK_FILE"
 
-  if [[ -f "$destination_file" ]] && ! bashdep::is_force; then
-    if ! bashdep::is_silent; then
-      echo "> $file_name already exists in '$destination_dir', skipping."
-    fi
+  if bashdep::_should_skip_download "$destination_file" "$lock_file" "$file_name" "$url"; then
+    bashdep::_log "> $file_name already exists in '$destination_dir', skipping."
     return 0
   fi
 
-  if ! bashdep::is_silent; then
-    echo "Downloading '$file_name' to '$destination_dir'..."
-  fi
+  bashdep::_log "Downloading '$file_name' to '$destination_dir'..."
 
-  if curl -fsSL "$url" -o "$destination_file"; then
-    if ! bashdep::is_silent; then
-      echo "> $file_name installed successfully in '$destination_dir'"
-    fi
-    chmod +x "$destination_file"
-  else
-    echo "Error: Failed to install $file_name from $url" >&2
+  local rc
+  curl -fsSL "$url" -o "$destination_file"
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    echo "Error: curl exit $rc — failed to install $file_name from $url" >&2
     return 1
   fi
+
+  bashdep::_log "> $file_name installed successfully in '$destination_dir'"
+  chmod +x "$destination_file"
+  bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
 }
 
 function bashdep::is_silent() {
-  [ "$BASHDEP_SILENT" == true ]
+  [[ "$BASHDEP_SILENT" == true ]]
 }
 
 function bashdep::is_force() {
-  [ "$BASHDEP_FORCE" == true ]
+  [[ "$BASHDEP_FORCE" == true ]]
+}
+
+# Internal: print message to stdout unless silent mode is enabled.
+function bashdep::_log() {
+  bashdep::is_silent || echo "$@"
+}
+
+# Internal: return 0 when an existing dependency can be reused.
+# True when destination file exists, force is off, and the lockfile records
+# the same source URL. False otherwise.
+function bashdep::_should_skip_download() {
+  local destination_file=$1 lock_file=$2 file_name=$3 url=$4
+  [[ -f "$destination_file" ]] || return 1
+  bashdep::is_force && return 1
+  [[ "$(bashdep::_lock_get "$lock_file" "$file_name")" == "$url" ]]
 }
 
 # Internal: validate and assign a boolean variable.
@@ -136,4 +159,36 @@ function bashdep::_set_bool() {
       return 1
       ;;
   esac
+}
+
+# Internal: read URL recorded in lockfile for a given filename.
+# Prints the URL on stdout (empty if absent or lockfile missing).
+function bashdep::_lock_get() {
+  local lock_file=$1 file_name=$2
+  [[ -f "$lock_file" ]] || return 0
+  awk -F '\t' -v name="$file_name" '$1 == name { print $2; exit }' "$lock_file"
+}
+
+# Internal: upsert filename → URL mapping in lockfile.
+# Returns 1 if the lockfile cannot be written.
+function bashdep::_lock_set() {
+  local lock_file=$1 file_name=$2 url=$3
+  local lock_dir tmp
+
+  lock_dir=$(dirname "$lock_file")
+  tmp=$(mktemp "$lock_dir/.bashdep.lock.XXXXXX") || {
+    echo "Error: Could not create temp file for lockfile update." >&2
+    return 1
+  }
+
+  {
+    [[ -f "$lock_file" ]] && awk -F '\t' -v name="$file_name" '$1 != name' "$lock_file"
+    printf '%s\t%s\n' "$file_name" "$url"
+  } | LC_ALL=C sort > "$tmp"
+
+  if ! mv "$tmp" "$lock_file"; then
+    rm -f "$tmp"
+    echo "Error: Could not write lockfile '$lock_file'." >&2
+    return 1
+  fi
 }
