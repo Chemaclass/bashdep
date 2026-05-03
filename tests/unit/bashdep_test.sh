@@ -9,6 +9,7 @@ function set_up() {
   BASHDEP_FORCE=false
   BASHDEP_SILENT=false
   BASHDEP_DRY_RUN=false
+  BASHDEP_VERBOSE=false
   TEST_DIR=$(mktemp -d)
 }
 
@@ -115,6 +116,55 @@ function test_bashdep_download_url_dry_run_skips_curl_and_lockfile() {
   assert_contains     "[dry-run]"      "$output"
   assert_file_not_exists "$TEST_DIR/tool"
   assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_is_verbose_true_when_var_true() {
+  BASHDEP_VERBOSE=true
+  bashdep::is_verbose
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_verbose_false_when_var_false() {
+  BASHDEP_VERBOSE=false
+  bashdep::is_verbose
+  assert_general_error
+}
+
+function test_bashdep_setup_verbose_true_makes_is_verbose_truthy() {
+  bashdep::setup verbose=true
+  bashdep::is_verbose
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_verbose_logs_url_on_skip() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  bashdep::setup verbose=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+  assert_contains "skipping"     "$output"
+  assert_contains "url: $url"    "$output"
+}
+
+function test_bashdep_download_url_verbose_logs_lockfile_after_install() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  bashdep::setup verbose=true
+
+  local output
+  output=$(bashdep::download_url "https://example.com/tool" "$TEST_DIR")
+  assert_contains "lockfile: $TEST_DIR/.bashdep.lock" "$output"
+}
+
+function test_bashdep_download_url_silent_overrides_verbose() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  bashdep::setup verbose=true silent=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+  assert_empty "$output"
 }
 
 function test_bashdep_download_url_dry_run_still_skips_when_lock_matches() {

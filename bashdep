@@ -8,6 +8,7 @@ BASHDEP_LOCK_FILE=".bashdep.lock"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
+BASHDEP_VERBOSE=false
 
 # Print bashdep version.
 function bashdep::version() {
@@ -25,6 +26,8 @@ function bashdep::version() {
 #   silent     - Suppress progress output (default: false).
 #   force      - Re-download dependencies even if they already exist (default: false).
 #   dry-run    - Preview actions without downloading or writing the lockfile (default: false).
+#   verbose    - Emit extra context (URLs on skip, lockfile path on write) (default: false).
+#                Suppressed by silent=true.
 #
 # Example:
 #   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
@@ -36,6 +39,7 @@ function bashdep::setup() {
       silent=*)    bashdep::_set_bool BASHDEP_SILENT  "${param#*=}" silent  || return 1 ;;
       force=*)     bashdep::_set_bool BASHDEP_FORCE   "${param#*=}" force   || return 1 ;;
       dry-run=*)   bashdep::_set_bool BASHDEP_DRY_RUN "${param#*=}" dry-run || return 1 ;;
+      verbose=*)   bashdep::_set_bool BASHDEP_VERBOSE "${param#*=}" verbose || return 1 ;;
       *)
         echo "Error: Invalid parameter '$param'" >&2
         return 1
@@ -159,6 +163,7 @@ function bashdep::download_url() {
 
   if bashdep::_should_skip_download "$destination_file" "$lock_file" "$file_name" "$url"; then
     bashdep::_log "> $file_name already exists in '$destination_dir', skipping."
+    bashdep::_vlog "  url: $url"
     return 0
   fi
 
@@ -168,6 +173,7 @@ function bashdep::download_url() {
   fi
 
   bashdep::_log "Downloading '$file_name' to '$destination_dir'..."
+  bashdep::_vlog "  url: $url"
 
   local rc
   curl -fsSL "$url" -o "$destination_file"
@@ -180,6 +186,7 @@ function bashdep::download_url() {
   bashdep::_log "> $file_name installed successfully in '$destination_dir'"
   chmod +x "$destination_file"
   bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
+  bashdep::_vlog "  lockfile: $lock_file"
 }
 
 function bashdep::is_silent() {
@@ -194,9 +201,18 @@ function bashdep::is_dry_run() {
   [[ "$BASHDEP_DRY_RUN" == true ]]
 }
 
+function bashdep::is_verbose() {
+  [[ "$BASHDEP_VERBOSE" == true ]]
+}
+
 # Internal: print message to stdout unless silent mode is enabled.
 function bashdep::_log() {
   bashdep::is_silent || echo "$@"
+}
+
+# Internal: print only when verbose mode is on (and silent is off).
+function bashdep::_vlog() {
+  bashdep::is_verbose && bashdep::_log "$@"
 }
 
 # Internal: return 0 when an existing dependency can be reused.
