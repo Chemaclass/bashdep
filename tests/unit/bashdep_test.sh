@@ -144,6 +144,49 @@ function test_bashdep_version_is_set() {
   assert_not_empty "$(bashdep::version)"
 }
 
+function test_bashdep_version_returns_semver() {
+  assert_matches "^[0-9]+\.[0-9]+\.[0-9]+$" "$(bashdep::version)"
+}
+
+function test_bashdep_set_bool_accepts_true() {
+  local var=initial
+  bashdep::_set_bool var true label
+  assert_equals "true" "$var"
+}
+
+function test_bashdep_set_bool_accepts_false() {
+  local var=initial
+  bashdep::_set_bool var false label
+  assert_equals "false" "$var"
+}
+
+function test_bashdep_set_bool_rejects_other_values() {
+  local var=initial
+  bashdep::_set_bool var maybe label 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_set_bool_error_includes_label_and_value() {
+  local err
+  err=$(bashdep::_set_bool var bogus mylabel 2>&1)
+  assert_contains "mylabel" "$err"
+  assert_contains "bogus"   "$err"
+}
+
+function test_bashdep_install_caps_failure_count_at_255() {
+  mock bashdep::setup_directory "return 0"
+  mock bashdep::download_url "return 1"
+
+  local deps=()
+  local i
+  for ((i = 0; i < 300; i++)); do
+    deps+=("https://example.com/$i")
+  done
+
+  bashdep::install "${deps[@]}"
+  assert_equals 255 "$?"
+}
+
 function test_bashdep_download_url_requires_url() {
   bashdep::download_url "" "/tmp" 2>/dev/null
   assert_general_error

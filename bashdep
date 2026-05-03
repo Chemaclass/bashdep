@@ -42,7 +42,8 @@ function bashdep::setup() {
 }
 
 # Download and install all dependencies.
-# Returns 0 if all succeed, otherwise the number of failures.
+# Returns 0 if all succeed, otherwise the number of failures (capped at 255
+# since bash return codes are 8-bit).
 function bashdep::install() {
   local dependencies=("$@")
   local failures=0
@@ -53,7 +54,7 @@ function bashdep::install() {
     bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
   done
 
-  return "$failures"
+  return $(( failures > 255 ? 255 : failures ))
 }
 
 # Internal: classify a dependency string into URL and target directory.
