@@ -890,6 +890,29 @@ function test_bashdep_clean_dry_run_preserves_files() {
   assert_file_exists "$TEST_DIR/orphan"
 }
 
+function test_bashdep_clean_does_not_remove_bashdep_script_itself() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  cp "$(current_dir)/../../bashdep" "$TEST_DIR/bashdep"
+  touch "$TEST_DIR/orphan"
+
+  bashdep::clean >/dev/null
+  assert_file_exists     "$TEST_DIR/bashdep"
+  assert_file_exists     "$TEST_DIR/tracked"
+  assert_file_not_exists "$TEST_DIR/orphan"
+}
+
+function test_bashdep_doctor_does_not_flag_bashdep_script_itself() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  cp "$(current_dir)/../../bashdep" "$TEST_DIR/bashdep"
+
+  local output
+  output=$(bashdep::doctor)
+  assert_successful_code "$?"
+  assert_not_contains "bashdep" "$output"
+}
+
 function test_bashdep_clean_handles_both_dirs() {
   BASHDEP_DIR="$TEST_DIR/main"
   BASHDEP_DEV_DIR="$TEST_DIR/dev"
