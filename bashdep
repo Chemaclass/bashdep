@@ -7,22 +7,73 @@ BASHDEP_DEV_SUFFIX="@dev"
 BASHDEP_LOCK_FILE=".bashdep.lock"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
+BASHDEP_DRY_RUN=false
+BASHDEP_VERBOSE=false
+BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
 
 # Print bashdep version.
 function bashdep::version() {
   echo "$BASHDEP_VERSION"
 }
 
+# Re-download the bashdep script itself from the upstream repo.
+# Usage:
+#   bashdep::self_update [ref] [target_path]
+#
+# - ref         - Git ref (branch or tag). Default: main.
+# - target_path - Where to write. Default: the path this bashdep was
+#                 sourced from (BASH_SOURCE[0]).
+#
+# The download URL is built from BASHDEP_SELF_URL_TEMPLATE (a printf
+# format string with one %s slot for the ref). Honors dry-run mode.
+# Returns 1 on download or write failure.
+function bashdep::self_update() {
+  local ref=${1:-main}
+  local target=${2:-${BASH_SOURCE[0]}}
+  local url
+  # shellcheck disable=SC2059 # The template is intentionally user-controlled (env-overridable).
+  printf -v url "$BASHDEP_SELF_URL_TEMPLATE" "$ref"
+
+  if bashdep::is_dry_run; then
+    bashdep::_log "[dry-run] Would update '$target' from '$url'"
+    return 0
+  fi
+
+  local tmp
+  tmp=$(mktemp) || {
+    echo "Error: Could not create temp file for self_update." >&2
+    return 1
+  }
+
+  bashdep::_log "Updating '$target' from '$url'..."
+  if ! curl -fsSL "$url" -o "$tmp"; then
+    rm -f "$tmp"
+    echo "Error: failed to download bashdep from '$url'" >&2
+    return 1
+  fi
+
+  if ! mv "$tmp" "$target"; then
+    rm -f "$tmp"
+    echo "Error: failed to write '$target'" >&2
+    return 1
+  fi
+  chmod +x "$target"
+  bashdep::_log "> bashdep updated. Re-source the script to load the new version."
+}
+
 # Configure bashdep behavior.
 #
 # Usage:
-#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false] [force=true|false]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=BOOL] [force=BOOL] [dry-run=BOOL]
 #
 # Parameters:
 #       dir    - Default destination directory (default: lib).
 #   dev-dir    - Development destination directory (default: lib/dev).
 #   silent     - Suppress progress output (default: false).
 #   force      - Re-download dependencies even if they already exist (default: false).
+#   dry-run    - Preview actions without downloading or writing the lockfile (default: false).
+#   verbose    - Emit extra context (URLs on skip, lockfile path on write) (default: false).
+#                Suppressed by silent=true.
 #
 # Example:
 #   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
@@ -31,8 +82,10 @@ function bashdep::setup() {
     case $param in
       dir=*)       BASHDEP_DIR="${param#*=}"        ;;
       dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
-      silent=*)    bashdep::_set_bool BASHDEP_SILENT "${param#*=}" silent || return 1 ;;
-      force=*)     bashdep::_set_bool BASHDEP_FORCE "${param#*=}" force  || return 1 ;;
+      silent=*)    bashdep::_set_bool BASHDEP_SILENT  "${param#*=}" silent  || return 1 ;;
+      force=*)     bashdep::_set_bool BASHDEP_FORCE   "${param#*=}" force   || return 1 ;;
+      dry-run=*)   bashdep::_set_bool BASHDEP_DRY_RUN "${param#*=}" dry-run || return 1 ;;
+      verbose=*)   bashdep::_set_bool BASHDEP_VERBOSE "${param#*=}" verbose || return 1 ;;
       *)
         echo "Error: Invalid parameter '$param'" >&2
         return 1
@@ -69,6 +122,113 @@ function bashdep::install_from() {
     return 0
   fi
   bashdep::install "${deps[@]}"
+}
+
+# Remove one or more installed dependencies by file name. Searches
+# BASHDEP_DIR and BASHDEP_DEV_DIR; removes the file plus its lockfile
+# entry from wherever it lives. Drops empty lockfiles after the last
+# entry is removed. Returns the count of names not found (capped at 255).
+# In dry-run mode, prints the intended action without touching disk.
+function bashdep::uninstall() {
+  local missing=0
+  local file_name dir lock_file found
+  for file_name in "$@"; do
+    found=false
+    for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
+      [[ -z "$dir" ]] && continue
+      lock_file="$dir/$BASHDEP_LOCK_FILE"
+      if [[ -f "$dir/$file_name" ]] || [[ -n "$(bashdep::_lock_get "$lock_file" "$file_name")" ]]; then
+        found=true
+        if bashdep::is_dry_run; then
+          bashdep::_log "[dry-run] Would remove '$dir/$file_name' and its lockfile entry"
+        else
+          rm -f "$dir/$file_name"
+          bashdep::_lock_remove "$lock_file" "$file_name" || return 1
+          bashdep::_log "> $file_name removed from '$dir'"
+        fi
+      fi
+    done
+    if ! $found; then
+      echo "Error: '$file_name' not found in any configured directory." >&2
+      missing=$((missing + 1))
+    fi
+  done
+  return $(( missing > 255 ? 255 : missing ))
+}
+
+# Remove orphan files: anything in BASHDEP_DIR or BASHDEP_DEV_DIR that
+# isn't recorded in the local .bashdep.lock and isn't the lockfile itself.
+# Skips directories with no lockfile (a missing lockfile is treated as
+# 'don't manage this dir', not 'every file is an orphan').
+# In dry-run mode, prints intended removals without touching disk.
+# Returns 0 always; failures from individual rm calls are not propagated.
+function bashdep::clean() {
+  local removed=0
+  local dir lock_file file_path file_name seen=""
+  for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
+    [[ -z "$dir" || ! -d "$dir" ]] && continue
+    case ":$seen:" in *":$dir:"*) continue ;; esac
+    seen="$seen:$dir"
+    lock_file="$dir/$BASHDEP_LOCK_FILE"
+    [[ -f "$lock_file" ]] || continue
+    for file_path in "$dir"/*; do
+      [[ -f "$file_path" ]] || continue
+      file_name="${file_path##*/}"
+      [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      [[ -n "$(bashdep::_lock_get "$lock_file" "$file_name")" ]] && continue
+      if bashdep::is_dry_run; then
+        bashdep::_log "[dry-run] Would remove orphan '$file_path'"
+      else
+        rm -f "$file_path"
+        bashdep::_log "> removed orphan '$file_path'"
+      fi
+      removed=$((removed + 1))
+    done
+  done
+  bashdep::_log "Cleaned $removed orphan(s)."
+}
+
+# Check each managed directory for consistency. Reports two kinds of issues:
+#   - Lockfile entries whose file is missing on disk.
+#   - Files on disk that have no lockfile entry (orphans).
+# Prints findings to stdout (suppressed by silent=true). Returns the issue
+# count, capped at 255. Returns 0 when everything is consistent.
+function bashdep::doctor() {
+  local issues=0
+  local dir lock_file file_path file_name entry_name entry_url seen=""
+  for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
+    [[ -z "$dir" || ! -d "$dir" ]] && continue
+    case ":$seen:" in *":$dir:"*) continue ;; esac
+    seen="$seen:$dir"
+    lock_file="$dir/$BASHDEP_LOCK_FILE"
+    if [[ ! -f "$lock_file" ]]; then
+      bashdep::_log "skip: '$dir' (no lockfile)"
+      continue
+    fi
+    bashdep::_log "checking '$dir'..."
+    while IFS=$'\t' read -r entry_name entry_url; do
+      [[ -z "$entry_name" ]] && continue
+      if [[ ! -f "$dir/$entry_name" ]]; then
+        bashdep::_log "  missing file for '$entry_name' (url: $entry_url)"
+        issues=$((issues + 1))
+      fi
+    done < "$lock_file"
+    for file_path in "$dir"/*; do
+      [[ -f "$file_path" ]] || continue
+      file_name="${file_path##*/}"
+      [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && continue
+      if [[ -z "$(bashdep::_lock_get "$lock_file" "$file_name")" ]]; then
+        bashdep::_log "  orphan file '$file_path' (no lockfile entry)"
+        issues=$((issues + 1))
+      fi
+    done
+  done
+  if [[ $issues -eq 0 ]]; then
+    bashdep::_log "doctor: OK (no inconsistencies)"
+    return 0
+  fi
+  bashdep::_log "doctor: $issues issue(s) found"
+  return $(( issues > 255 ? 255 : issues ))
 }
 
 # Print installed dependencies recorded in lockfiles under BASHDEP_DIR and
@@ -156,10 +316,17 @@ function bashdep::download_url() {
 
   if bashdep::_should_skip_download "$destination_file" "$lock_file" "$file_name" "$url"; then
     bashdep::_log "> $file_name already exists in '$destination_dir', skipping."
+    bashdep::_vlog "  url: $url"
+    return 0
+  fi
+
+  if bashdep::is_dry_run; then
+    bashdep::_log "[dry-run] Would download '$file_name' from '$url' to '$destination_dir'"
     return 0
   fi
 
   bashdep::_log "Downloading '$file_name' to '$destination_dir'..."
+  bashdep::_vlog "  url: $url"
 
   local rc
   curl -fsSL "$url" -o "$destination_file"
@@ -172,6 +339,7 @@ function bashdep::download_url() {
   bashdep::_log "> $file_name installed successfully in '$destination_dir'"
   chmod +x "$destination_file"
   bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
+  bashdep::_vlog "  lockfile: $lock_file"
 }
 
 function bashdep::is_silent() {
@@ -182,9 +350,22 @@ function bashdep::is_force() {
   [[ "$BASHDEP_FORCE" == true ]]
 }
 
+function bashdep::is_dry_run() {
+  [[ "$BASHDEP_DRY_RUN" == true ]]
+}
+
+function bashdep::is_verbose() {
+  [[ "$BASHDEP_VERBOSE" == true ]]
+}
+
 # Internal: print message to stdout unless silent mode is enabled.
 function bashdep::_log() {
   bashdep::is_silent || echo "$@"
+}
+
+# Internal: print only when verbose mode is on (and silent is off).
+function bashdep::_vlog() {
+  bashdep::is_verbose && bashdep::_log "$@"
 }
 
 # Internal: return 0 when an existing dependency can be reused.
@@ -215,6 +396,30 @@ function bashdep::_lock_get() {
   local lock_file=$1 file_name=$2
   [[ -f "$lock_file" ]] || return 0
   awk -F '\t' -v name="$file_name" '$1 == name { print $2; exit }' "$lock_file"
+}
+
+# Internal: drop the entry for $file_name from the lockfile. Removes the
+# lockfile entirely once it has no entries left. No-op when the lockfile
+# does not exist. Returns 1 if the rewrite cannot be persisted.
+function bashdep::_lock_remove() {
+  local lock_file=$1 file_name=$2
+  [[ -f "$lock_file" ]] || return 0
+  local lock_dir tmp
+  lock_dir=$(dirname "$lock_file")
+  tmp=$(mktemp "$lock_dir/.bashdep.lock.XXXXXX") || {
+    echo "Error: Could not create temp file for lockfile update." >&2
+    return 1
+  }
+  awk -F '\t' -v name="$file_name" '$1 != name' "$lock_file" | LC_ALL=C sort > "$tmp"
+  if [[ ! -s "$tmp" ]]; then
+    rm -f "$tmp" "$lock_file"
+    return 0
+  fi
+  if ! mv "$tmp" "$lock_file"; then
+    rm -f "$tmp"
+    echo "Error: Could not write lockfile '$lock_file'." >&2
+    return 1
+  fi
 }
 
 # Internal: upsert filename → URL mapping in lockfile.

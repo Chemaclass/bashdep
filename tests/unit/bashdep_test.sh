@@ -8,6 +8,8 @@ function set_up() {
   source "$(current_dir)/../../bashdep"
   BASHDEP_FORCE=false
   BASHDEP_SILENT=false
+  BASHDEP_DRY_RUN=false
+  BASHDEP_VERBOSE=false
   TEST_DIR=$(mktemp -d)
 }
 
@@ -83,6 +85,100 @@ function test_bashdep_is_force_false_when_var_false() {
   BASHDEP_FORCE=false
   bashdep::is_force
   assert_general_error
+}
+
+function test_bashdep_is_dry_run_true_when_var_true() {
+  BASHDEP_DRY_RUN=true
+  bashdep::is_dry_run
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_dry_run_false_when_var_false() {
+  BASHDEP_DRY_RUN=false
+  bashdep::is_dry_run
+  assert_general_error
+}
+
+function test_bashdep_setup_dry_run_true_makes_is_dry_run_truthy() {
+  bashdep::setup dry-run=true
+  bashdep::is_dry_run
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_dry_run_skips_curl_and_lockfile() {
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::download_url "https://example.com/tool" "$TEST_DIR")
+
+  assert_not_contains "SHOULD_NOT_RUN" "$output"
+  assert_contains     "[dry-run]"      "$output"
+  assert_file_not_exists "$TEST_DIR/tool"
+  assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_is_verbose_true_when_var_true() {
+  BASHDEP_VERBOSE=true
+  bashdep::is_verbose
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_verbose_false_when_var_false() {
+  BASHDEP_VERBOSE=false
+  bashdep::is_verbose
+  assert_general_error
+}
+
+function test_bashdep_setup_verbose_true_makes_is_verbose_truthy() {
+  bashdep::setup verbose=true
+  bashdep::is_verbose
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_verbose_logs_url_on_skip() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  bashdep::setup verbose=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+  assert_contains "skipping"     "$output"
+  assert_contains "url: $url"    "$output"
+}
+
+function test_bashdep_download_url_verbose_logs_lockfile_after_install() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  bashdep::setup verbose=true
+
+  local output
+  output=$(bashdep::download_url "https://example.com/tool" "$TEST_DIR")
+  assert_contains "lockfile: $TEST_DIR/.bashdep.lock" "$output"
+}
+
+function test_bashdep_download_url_silent_overrides_verbose() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  bashdep::setup verbose=true silent=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+  assert_empty "$output"
+}
+
+function test_bashdep_download_url_dry_run_still_skips_when_lock_matches() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+
+  assert_not_contains "SHOULD_NOT_RUN" "$output"
+  assert_not_contains "[dry-run]"       "$output"
+  assert_contains     "skipping"        "$output"
 }
 
 function test_bashdep_log_prints_when_not_silent() {
@@ -599,6 +695,236 @@ EOF
 
   bashdep::install_from "$file"
   assert_equals 2 "$?"
+}
+
+function test_bashdep_uninstall_removes_file_and_lock_entry() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_file_not_exists "$TEST_DIR/tool"
+  assert_empty "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" tool)"
+}
+
+function test_bashdep_uninstall_drops_lockfile_when_empty() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_uninstall_keeps_lockfile_with_remaining_entries() {
+  BASHDEP_DIR="$TEST_DIR"
+  touch "$TEST_DIR/aaa" "$TEST_DIR/bbb"
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' > "$TEST_DIR/.bashdep.lock"
+
+  bashdep::uninstall aaa >/dev/null
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+  assert_equals "https://example.com/bbb" "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" bbb)"
+  assert_empty  "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" aaa)"
+}
+
+function test_bashdep_uninstall_searches_dev_dir() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  _seed_installed "$BASHDEP_DEV_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_successful_code "$?"
+  assert_file_not_exists "$BASHDEP_DEV_DIR/tool"
+}
+
+function test_bashdep_uninstall_returns_nonzero_when_not_found() {
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::uninstall ghost 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_uninstall_dry_run_skips_actual_removal() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::uninstall tool)
+  assert_contains  "[dry-run]" "$output"
+  assert_file_exists "$TEST_DIR/tool"
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_self_update_writes_target_from_curl() {
+  local target="$TEST_DIR/bashdep_copy"
+  # shellcheck disable=SC2016
+  mock curl 'printf "NEW_BASHDEP_CONTENT\n" > "$4"'
+
+  bashdep::self_update main "$target" >/dev/null
+  assert_file_exists "$target"
+  assert_contains "NEW_BASHDEP_CONTENT" "$(cat "$target")"
+}
+
+function test_bashdep_self_update_dry_run_skips_write() {
+  local target="$TEST_DIR/bashdep_copy"
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::self_update main "$target")
+  assert_contains       "[dry-run]" "$output"
+  assert_file_not_exists "$target"
+}
+
+function test_bashdep_self_update_curl_failure_returns_nonzero() {
+  local target="$TEST_DIR/bashdep_copy"
+  mock curl "return 22"
+
+  bashdep::self_update main "$target" 2>/dev/null >/dev/null
+  assert_general_error
+  assert_file_not_exists "$target"
+}
+
+function test_bashdep_self_update_uses_url_template() {
+  local target="$TEST_DIR/bashdep_copy"
+  BASHDEP_SELF_URL_TEMPLATE="https://example.test/bashdep/%s"
+  # download_url contract: curl -fsSL <url> -o <dest> -> $2=url, $4=dest.
+  # shellcheck disable=SC2016
+  mock curl 'printf "from=%s\n" "$2" > "$4"'
+
+  bashdep::self_update v1.2.3 "$target" >/dev/null
+  assert_contains "from=https://example.test/bashdep/v1.2.3" "$(cat "$target")"
+}
+
+function test_bashdep_doctor_reports_orphan_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+
+  local output
+  output=$(bashdep::doctor)
+  local rc=$?
+  assert_contains "orphan file" "$output"
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_doctor_reports_missing_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  printf 'gone\thttps://example.com/gone\n' > "$TEST_DIR/.bashdep.lock"
+
+  local output
+  output=$(bashdep::doctor)
+  local rc=$?
+  assert_contains "missing file" "$output"
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_doctor_ok_when_consistent() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+
+  local output
+  output=$(bashdep::doctor)
+  assert_successful_code "$?"
+  assert_contains "OK" "$output"
+}
+
+function test_bashdep_doctor_skips_dir_without_lockfile() {
+  BASHDEP_DIR="$TEST_DIR"
+  touch "$TEST_DIR/free_file"
+
+  local output
+  output=$(bashdep::doctor)
+  assert_successful_code "$?"
+  assert_contains "skip" "$output"
+}
+
+function test_bashdep_doctor_counts_issues_across_dirs() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  _seed_installed "$BASHDEP_DIR"     a https://example.com/a
+  _seed_installed "$BASHDEP_DEV_DIR" b https://example.com/b
+  touch "$BASHDEP_DIR/orphan_main"
+  printf 'gone\thttps://example.com/gone\n' >> "$BASHDEP_DEV_DIR/.bashdep.lock"
+
+  bashdep::doctor >/dev/null
+  assert_equals 2 "$?"
+}
+
+function test_bashdep_clean_removes_orphan_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+
+  bashdep::clean >/dev/null
+  assert_file_exists     "$TEST_DIR/tracked"
+  assert_file_not_exists "$TEST_DIR/orphan"
+}
+
+function test_bashdep_clean_preserves_lockfile_itself() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+
+  bashdep::clean >/dev/null
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_clean_skips_dir_without_lockfile() {
+  BASHDEP_DIR="$TEST_DIR"
+  touch "$TEST_DIR/keep_me"
+
+  bashdep::clean >/dev/null
+  assert_file_exists "$TEST_DIR/keep_me"
+}
+
+function test_bashdep_clean_dry_run_preserves_files() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::clean)
+  assert_contains    "[dry-run]"         "$output"
+  assert_file_exists "$TEST_DIR/orphan"
+}
+
+function test_bashdep_clean_handles_both_dirs() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  _seed_installed "$BASHDEP_DIR"     a https://example.com/a
+  _seed_installed "$BASHDEP_DEV_DIR" b https://example.com/b
+  touch "$BASHDEP_DIR/orphan_main" "$BASHDEP_DEV_DIR/orphan_dev"
+
+  bashdep::clean >/dev/null
+  assert_file_not_exists "$BASHDEP_DIR/orphan_main"
+  assert_file_not_exists "$BASHDEP_DEV_DIR/orphan_dev"
+  assert_file_exists     "$BASHDEP_DIR/a"
+  assert_file_exists     "$BASHDEP_DEV_DIR/b"
+}
+
+function test_bashdep_lock_remove_drops_entry() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' > "$lock_file"
+
+  bashdep::_lock_remove "$lock_file" aaa
+  assert_empty "$(bashdep::_lock_get "$lock_file" aaa)"
+  assert_equals "https://example.com/bbb" "$(bashdep::_lock_get "$lock_file" bbb)"
+}
+
+function test_bashdep_lock_remove_deletes_empty_lockfile() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'only\thttps://example.com/only\n' > "$lock_file"
+
+  bashdep::_lock_remove "$lock_file" only
+  assert_file_not_exists "$lock_file"
+}
+
+function test_bashdep_lock_remove_no_op_when_lockfile_missing() {
+  bashdep::_lock_remove "$TEST_DIR/nope" anything
+  assert_successful_code "$?"
 }
 
 function test_bashdep_list_empty_when_no_lockfiles() {

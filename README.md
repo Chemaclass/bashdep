@@ -45,9 +45,10 @@ Prefer an inline array? Pass it to `bashdep::install` directly.
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
-- **Force refresh** with one flag (`force=true`).
 - **File-driven or array-driven** — `install_from` or `install`.
-- **List installed** deps in one command (`bashdep::list`).
+- **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`,
+  `self_update`.
+- **Modes** — `force`, `dry-run`, `silent`, `verbose`.
 
 ## Documentation
 
