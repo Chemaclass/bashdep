@@ -13,20 +13,27 @@ Prerequisites:
 - ShellCheck and editorconfig-checker installed (release script gates
   on them).
 
+By default, the script auto-bumps the **minor** version (e.g. `0.3.0` →
+`0.4.0`). Pass an explicit version to override, or use `--major` /
+`--patch` for a different bump level.
+
 Preview first (idempotent — touches nothing):
 
 ```bash
-./release.sh 0.4.0 --dry-run
-# or
-make release/dry-run 0.4.0
+./release.sh --dry-run               # auto-bump minor
+./release.sh --patch --dry-run       # auto-bump patch
+./release.sh 0.4.0 --dry-run         # explicit version
+make release/dry-run                 # via make
 ```
 
 When happy, run for real:
 
 ```bash
-./release.sh 0.4.0
-# or
-make release 0.4.0
+./release.sh                         # auto-bump minor (default)
+./release.sh --major                 # auto-bump major
+./release.sh 0.4.0                   # explicit
+make release                         # via make
+make release 0.4.0                   # via make, explicit
 ```
 
 The script:
@@ -49,6 +56,9 @@ The release URL is printed at the end.
 
 | Flag             | Effect                                                      |
 | ---------------- | ----------------------------------------------------------- |
+| `--major`        | Auto-bump major (X.Y.Z → X+1.0.0). Ignored if version given. |
+| `--minor`        | Auto-bump minor (the default; explicit form).               |
+| `--patch`        | Auto-bump patch (X.Y.Z → X.Y.Z+1). Ignored if version given. |
 | `--dry-run`      | Preview every step. No file/git/network changes.            |
 | `--force`        | Skip the interactive `Release X.Y.Z?` confirmation.         |
 | `--no-gh`        | Skip the GitHub release step (still pushes commit + tag).   |

@@ -33,6 +33,7 @@ readonly RELEASE_ASSET="bashdep"
 readonly MAIN_BRANCH="main"
 
 VERSION=""
+BUMP_LEVEL="minor"
 DRY_RUN=false
 FORCE=false
 WITH_GH_RELEASE=true
@@ -66,12 +67,18 @@ run() {
 
 usage() {
   cat <<EOF
-Usage: ./release.sh <version> [options]
+Usage: ./release.sh [version] [options]
 
 Arguments:
-  version       Target semver (e.g. 0.4.0). Required.
+  version       Target semver (e.g. 0.4.0). Optional — when omitted,
+                auto-bumps the minor of the current BASHDEP_VERSION
+                (e.g. 0.3.0 → 0.4.0; patch resets to 0).
 
 Options:
+  --major       Auto-bump the major instead of minor (X.Y.Z → X+1.0.0).
+                Ignored when an explicit version is given.
+  --patch       Auto-bump the patch instead of minor (X.Y.Z → X.Y.Z+1).
+                Ignored when an explicit version is given.
   --dry-run     Preview every step without mutating files, git, or network.
   --force       Skip interactive confirmation.
   --no-gh       Skip the GitHub release step.
@@ -79,9 +86,11 @@ Options:
   -h, --help    Show this help.
 
 Examples:
-  ./release.sh 0.4.0                 # interactive release
-  ./release.sh 0.4.0 --dry-run       # preview only
-  ./release.sh 0.4.0 --force         # CI / non-interactive
+  ./release.sh                       # auto-bump minor (default)
+  ./release.sh --patch               # auto-bump patch
+  ./release.sh --major --dry-run     # preview a major bump
+  ./release.sh 0.4.0                 # explicit version, interactive
+  ./release.sh 0.4.0 --force         # explicit, CI / non-interactive
 EOF
 }
 
@@ -89,6 +98,9 @@ parse_args() {
   while [[ $# -gt 0 ]]; do
     case $1 in
       -h|--help) usage; exit 0 ;;
+      --major)   BUMP_LEVEL="major" ;;
+      --minor)   BUMP_LEVEL="minor" ;;
+      --patch)   BUMP_LEVEL="patch" ;;
       --dry-run) DRY_RUN=true ;;
       --force)   FORCE=true ;;
       --no-gh)   WITH_GH_RELEASE=false ;;
@@ -105,16 +117,24 @@ parse_args() {
     shift
   done
 
-  if [[ -z "$VERSION" ]]; then
-    err "Missing required <version>."
-    usage >&2
-    exit 1
-  fi
-
-  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+  if [[ -n "$VERSION" ]] && ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
     err "Invalid semver: '$VERSION'."
     exit 1
   fi
+}
+
+# Compute next version from a current X.Y.Z given a bump level.
+# Echoes the new version on stdout.
+bump_version_string() {
+  local current=$1 level=$2
+  local major minor patch
+  IFS='.' read -r major minor patch <<<"$current"
+  case $level in
+    major) printf '%s.0.0\n'   "$((major + 1))" ;;
+    minor) printf '%s.%s.0\n'  "$major" "$((minor + 1))" ;;
+    patch) printf '%s.%s.%s\n' "$major" "$minor" "$((patch + 1))" ;;
+    *)     err "Unknown bump level: $level"; return 1 ;;
+  esac
 }
 
 # --- Pre-flight checks -------------------------------------------------------
@@ -157,23 +177,34 @@ preflight() {
     ok "working tree clean"
   fi
 
-  if git rev-parse "$VERSION" >/dev/null 2>&1; then
-    err "Tag '$VERSION' already exists."
-    exit 1
-  fi
-  ok "tag $VERSION does not exist"
-
   local current
   current=$(grep -E '^BASHDEP_VERSION=' bashdep | head -1 | sed -E 's/^BASHDEP_VERSION="([^"]+)"$/\1/')
   if [[ -z "$current" ]]; then
     err "Could not read current BASHDEP_VERSION from 'bashdep'."
     exit 1
   fi
+  PREVIOUS_VERSION="$current"
+
+  if [[ -z "$VERSION" ]]; then
+    if ! [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      err "Auto-bump requires the current version to be plain X.Y.Z (got '$current'). Pass an explicit version."
+      exit 1
+    fi
+    VERSION=$(bump_version_string "$current" "$BUMP_LEVEL")
+    ok "auto-bumped $BUMP_LEVEL: $current → $VERSION"
+  fi
+
   if [[ "$current" == "$VERSION" ]]; then
     err "BASHDEP_VERSION is already '$VERSION'. Choose a higher version."
     exit 1
   fi
-  PREVIOUS_VERSION="$current"
+
+  if git rev-parse "$VERSION" >/dev/null 2>&1; then
+    err "Tag '$VERSION' already exists."
+    exit 1
+  fi
+  ok "tag $VERSION does not exist"
+
   ok "current version: $PREVIOUS_VERSION → new version: $VERSION"
 
   if ! grep -q '^## \[Unreleased\]' CHANGELOG.md; then
