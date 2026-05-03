@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.4.0] - 2026-05-03
+
+### Added
+
 - `bashdep::uninstall <file...>` removes a dep file plus its lockfile
   entry; drops the lockfile when its last entry is gone.
 - `bashdep::clean` removes orphan files (in dir, not in lockfile).
@@ -53,5 +61,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.1...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/Chemaclass/bashdep/compare/0.3.0...0.4.0
 [0.1]: https://github.com/Chemaclass/bashdep/releases/tag/0.1
