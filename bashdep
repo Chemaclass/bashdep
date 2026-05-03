@@ -369,8 +369,10 @@ function bashdep::_log() {
 }
 
 # Internal: print only when verbose mode is on (and silent is off).
+# Always returns 0 — "not verbose" is a normal state, not a failure.
 function bashdep::_vlog() {
-  bashdep::is_verbose && bashdep::_log "$@"
+  if bashdep::is_verbose; then bashdep::_log "$@"; fi
+  return 0
 }
 
 # Internal: return 0 when an existing dependency can be reused.

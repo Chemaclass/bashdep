@@ -572,6 +572,59 @@ function test_bashdep_download_url_curl_failure_returns_non_zero() {
   assert_general_error
 }
 
+function test_bashdep_download_url_returns_zero_on_success() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_returns_zero_when_verbose_off() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_VERBOSE=false
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_returns_zero_when_verbose_on() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_VERBOSE=true
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
+  assert_successful_code "$?"
+}
+
+function test_bashdep_install_returns_zero_after_real_download() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::install "https://example.com/a" >/dev/null
+  assert_successful_code "$?"
+}
+
+function test_bashdep_install_from_returns_zero_after_real_download() {
+  local file="$TEST_DIR/.bashdep"
+  printf 'https://example.com/a\n' > "$file"
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::install_from "$file" >/dev/null
+  assert_successful_code "$?"
+}
+
+function test_bashdep_vlog_returns_zero_when_verbose_off() {
+  BASHDEP_VERBOSE=false
+  bashdep::_vlog hi
+  assert_successful_code "$?"
+}
+
+function test_bashdep_vlog_returns_zero_when_verbose_on() {
+  BASHDEP_VERBOSE=true
+  bashdep::_vlog hi >/dev/null
+  assert_successful_code "$?"
+}
+
 function test_bashdep_download_url_writes_lockfile_entry() {
   local url="https://example.com/tool"
   mock curl "true"
