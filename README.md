@@ -53,9 +53,11 @@ Prefer an inline array? Pass it to `bashdep::install` directly.
 ## Documentation
 
 - [**API reference**](docs/api.md) — `install`, `install_from`, `setup`,
-  `list`, `version`.
+  `list`, `uninstall`, `clean`, `doctor`, `self_update`, `version`.
 - [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies,
   error handling.
+- [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged
+  release with `release.sh`.
 - [**Contributing**](.github/CONTRIBUTING.md) — project layout, test
   conventions, coding guidelines.
 
