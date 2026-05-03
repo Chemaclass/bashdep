@@ -697,6 +697,85 @@ EOF
   assert_equals 2 "$?"
 }
 
+function test_bashdep_uninstall_removes_file_and_lock_entry() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_file_not_exists "$TEST_DIR/tool"
+  assert_empty "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" tool)"
+}
+
+function test_bashdep_uninstall_drops_lockfile_when_empty() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_uninstall_keeps_lockfile_with_remaining_entries() {
+  BASHDEP_DIR="$TEST_DIR"
+  touch "$TEST_DIR/aaa" "$TEST_DIR/bbb"
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' > "$TEST_DIR/.bashdep.lock"
+
+  bashdep::uninstall aaa >/dev/null
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+  assert_equals "https://example.com/bbb" "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" bbb)"
+  assert_empty  "$(bashdep::_lock_get "$TEST_DIR/.bashdep.lock" aaa)"
+}
+
+function test_bashdep_uninstall_searches_dev_dir() {
+  BASHDEP_DIR="$TEST_DIR/main"
+  BASHDEP_DEV_DIR="$TEST_DIR/dev"
+  mkdir -p "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"
+  _seed_installed "$BASHDEP_DEV_DIR" tool https://example.com/tool
+
+  bashdep::uninstall tool >/dev/null
+  assert_successful_code "$?"
+  assert_file_not_exists "$BASHDEP_DEV_DIR/tool"
+}
+
+function test_bashdep_uninstall_returns_nonzero_when_not_found() {
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::uninstall ghost 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_uninstall_dry_run_skips_actual_removal() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::uninstall tool)
+  assert_contains  "[dry-run]" "$output"
+  assert_file_exists "$TEST_DIR/tool"
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_lock_remove_drops_entry() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' > "$lock_file"
+
+  bashdep::_lock_remove "$lock_file" aaa
+  assert_empty "$(bashdep::_lock_get "$lock_file" aaa)"
+  assert_equals "https://example.com/bbb" "$(bashdep::_lock_get "$lock_file" bbb)"
+}
+
+function test_bashdep_lock_remove_deletes_empty_lockfile() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'only\thttps://example.com/only\n' > "$lock_file"
+
+  bashdep::_lock_remove "$lock_file" only
+  assert_file_not_exists "$lock_file"
+}
+
+function test_bashdep_lock_remove_no_op_when_lockfile_missing() {
+  bashdep::_lock_remove "$TEST_DIR/nope" anything
+  assert_successful_code "$?"
+}
+
 function test_bashdep_list_empty_when_no_lockfiles() {
   BASHDEP_DIR="$TEST_DIR/empty_main"
   BASHDEP_DEV_DIR="$TEST_DIR/empty_dev"
