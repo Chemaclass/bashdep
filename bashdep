@@ -41,6 +41,36 @@ function bashdep::setup() {
   done
 }
 
+# Read a dependency list from a file and install all entries.
+# One URL per line; blank lines and lines starting with `#` are ignored.
+# Leading/trailing whitespace per line is stripped. Returns the failure
+# count (capped at 255), or 1 if the file argument is missing or unreadable.
+function bashdep::install_from() {
+  local file=$1
+  if [[ -z "$file" ]]; then
+    echo "Error: install_from requires a file path." >&2
+    return 1
+  fi
+  if [[ ! -f "$file" ]]; then
+    echo "Error: dependency file '$file' not found." >&2
+    return 1
+  fi
+
+  local deps=()
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    deps+=("$line")
+  done < "$file"
+
+  if [[ ${#deps[@]} -eq 0 ]]; then
+    return 0
+  fi
+  bashdep::install "${deps[@]}"
+}
+
 # Print installed dependencies recorded in lockfiles under BASHDEP_DIR and
 # BASHDEP_DEV_DIR. One entry per line, tab-separated: <path>\t<source URL>.
 # Skips directories without a lockfile. Pass extra dirs as arguments.

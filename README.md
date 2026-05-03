@@ -16,6 +16,7 @@ from your scripts.
 - [Quick start](#quick-start)
 - [API](#api)
   - [`bashdep::install`](#bashdepinstall)
+  - [`bashdep::install_from`](#bashdepinstall_from)
   - [`bashdep::setup`](#bashdepsetup)
   - [`bashdep::list`](#bashdeplist)
   - [`bashdep::version`](#bashdepversion)
@@ -88,8 +89,32 @@ Download every dependency in the list into the configured directories.
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-Returns the number of failed downloads (0 on success). Pair with
-`set -e` or check `$?` to gate the rest of your script.
+Returns the number of failed downloads (0 on success, capped at 255).
+Pair with `set -e` or check `$?` to gate the rest of your script.
+
+### `bashdep::install_from`
+
+Read a dependency list from a file and install every entry. Blank lines
+and lines starting with `#` are ignored; leading/trailing whitespace per
+line is stripped.
+
+```bash
+bashdep::install_from .bashdep
+```
+
+Example `.bashdep`:
+
+```
+# Runtime
+https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
+
+# Dev tools
+https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
+```
+
+Returns `1` if the file argument is missing or unreadable; otherwise
+returns the same failure count as `bashdep::install`.
 
 ### `bashdep::setup`
 

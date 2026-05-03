@@ -12,6 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - `bashdep::setup` with `dir`, `dev-dir`, `silent`, `force` parameters.
 - `bashdep::list` prints every installed dependency from the lockfiles
   under `dir` and `dev-dir` (tab-separated `<path>\t<URL>` lines).
+- `bashdep::install_from <file>` reads a dependency list from disk; blank
+  lines and `#` comments are ignored.
 - `@dev` URL suffix routes a dependency to `dev-dir`.
 - `bashdep::version` prints the current version.
 
