@@ -7,6 +7,7 @@ BASHDEP_DEV_SUFFIX="@dev"
 BASHDEP_LOCK_FILE=".bashdep.lock"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
+BASHDEP_DRY_RUN=false
 
 # Print bashdep version.
 function bashdep::version() {
@@ -16,13 +17,14 @@ function bashdep::version() {
 # Configure bashdep behavior.
 #
 # Usage:
-#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=true|false] [force=true|false]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=BOOL] [force=BOOL] [dry-run=BOOL]
 #
 # Parameters:
 #       dir    - Default destination directory (default: lib).
 #   dev-dir    - Development destination directory (default: lib/dev).
 #   silent     - Suppress progress output (default: false).
 #   force      - Re-download dependencies even if they already exist (default: false).
+#   dry-run    - Preview actions without downloading or writing the lockfile (default: false).
 #
 # Example:
 #   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
@@ -31,8 +33,9 @@ function bashdep::setup() {
     case $param in
       dir=*)       BASHDEP_DIR="${param#*=}"        ;;
       dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
-      silent=*)    bashdep::_set_bool BASHDEP_SILENT "${param#*=}" silent || return 1 ;;
-      force=*)     bashdep::_set_bool BASHDEP_FORCE "${param#*=}" force  || return 1 ;;
+      silent=*)    bashdep::_set_bool BASHDEP_SILENT  "${param#*=}" silent  || return 1 ;;
+      force=*)     bashdep::_set_bool BASHDEP_FORCE   "${param#*=}" force   || return 1 ;;
+      dry-run=*)   bashdep::_set_bool BASHDEP_DRY_RUN "${param#*=}" dry-run || return 1 ;;
       *)
         echo "Error: Invalid parameter '$param'" >&2
         return 1
@@ -159,6 +162,11 @@ function bashdep::download_url() {
     return 0
   fi
 
+  if bashdep::is_dry_run; then
+    bashdep::_log "[dry-run] Would download '$file_name' from '$url' to '$destination_dir'"
+    return 0
+  fi
+
   bashdep::_log "Downloading '$file_name' to '$destination_dir'..."
 
   local rc
@@ -180,6 +188,10 @@ function bashdep::is_silent() {
 
 function bashdep::is_force() {
   [[ "$BASHDEP_FORCE" == true ]]
+}
+
+function bashdep::is_dry_run() {
+  [[ "$BASHDEP_DRY_RUN" == true ]]
 }
 
 # Internal: print message to stdout unless silent mode is enabled.

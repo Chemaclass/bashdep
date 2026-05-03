@@ -8,6 +8,7 @@ function set_up() {
   source "$(current_dir)/../../bashdep"
   BASHDEP_FORCE=false
   BASHDEP_SILENT=false
+  BASHDEP_DRY_RUN=false
   TEST_DIR=$(mktemp -d)
 }
 
@@ -83,6 +84,51 @@ function test_bashdep_is_force_false_when_var_false() {
   BASHDEP_FORCE=false
   bashdep::is_force
   assert_general_error
+}
+
+function test_bashdep_is_dry_run_true_when_var_true() {
+  BASHDEP_DRY_RUN=true
+  bashdep::is_dry_run
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_dry_run_false_when_var_false() {
+  BASHDEP_DRY_RUN=false
+  bashdep::is_dry_run
+  assert_general_error
+}
+
+function test_bashdep_setup_dry_run_true_makes_is_dry_run_truthy() {
+  bashdep::setup dry-run=true
+  bashdep::is_dry_run
+  assert_successful_code "$?"
+}
+
+function test_bashdep_download_url_dry_run_skips_curl_and_lockfile() {
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::download_url "https://example.com/tool" "$TEST_DIR")
+
+  assert_not_contains "SHOULD_NOT_RUN" "$output"
+  assert_contains     "[dry-run]"      "$output"
+  assert_file_not_exists "$TEST_DIR/tool"
+  assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_download_url_dry_run_still_skips_when_lock_matches() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+  mock curl "echo SHOULD_NOT_RUN"
+  bashdep::setup dry-run=true
+
+  local output
+  output=$(bashdep::download_url "$url" "$TEST_DIR")
+
+  assert_not_contains "SHOULD_NOT_RUN" "$output"
+  assert_not_contains "[dry-run]"       "$output"
+  assert_contains     "skipping"        "$output"
 }
 
 function test_bashdep_log_prints_when_not_silent() {
