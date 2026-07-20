@@ -41,11 +41,23 @@ entry. Commit `.bashdep.lock` to lock versions across collaborators.
 
 Prefer an inline array? Pass it to `bashdep::install` directly.
 
+### Or use the CLI
+
+No wrapper script needed — bashdep is also a CLI:
+
+```bash
+./lib/bashdep install          # reads ./.bashdep
+./lib/bashdep list
+./lib/bashdep doctor
+./lib/bashdep --help
+```
+
 ## Why bashdep?
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
-- **File-driven or array-driven** — `install_from` or `install`.
+- **File-driven, array-driven, or CLI** — `install_from`, `install`, or
+  `./lib/bashdep <command>`.
 - **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`,
   `self_update`.
 - **Modes** — `force`, `dry-run`, `silent`, `verbose`.

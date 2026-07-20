@@ -55,8 +55,8 @@ both by default.
 
 - `bashdep::install` continues past failed downloads and returns the
   failure count (capped at 255).
-- `bashdep::install_from` returns `1` if the file is missing or
-  unreadable.
+- `bashdep::install_from` returns `1` if the file (default: `.bashdep`)
+  is missing or unreadable.
 - `bashdep::setup` returns `1` on unknown params or non-boolean values
   for `silent` / `force`.
 - `curl` failures print the exit code to stderr (e.g. `22` = HTTP error,

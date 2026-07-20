@@ -96,14 +96,11 @@ function bashdep::setup() {
 
 # Read a dependency list from a file and install all entries.
 # One URL per line; blank lines and lines starting with `#` are ignored.
-# Leading/trailing whitespace per line is stripped. Returns the failure
-# count (capped at 255), or 1 if the file argument is missing or unreadable.
+# Leading/trailing whitespace per line is stripped. Defaults to `.bashdep`
+# in the current directory when no file is given. Returns the failure
+# count (capped at 255), or 1 if the file is unreadable.
 function bashdep::install_from() {
-  local file=$1
-  if [[ -z "$file" ]]; then
-    echo "Error: install_from requires a file path." >&2
-    return 1
-  fi
+  local file=${1:-.bashdep}
   if [[ ! -f "$file" ]]; then
     echo "Error: dependency file '$file' not found." >&2
     return 1
@@ -452,3 +449,118 @@ function bashdep::_lock_set() {
     return 1
   fi
 }
+
+# Print CLI usage.
+function bashdep::usage() {
+  cat <<'EOF'
+bashdep - minimal bash dependency manager
+
+Usage:
+  bashdep <command> [options] [args]
+
+Commands:
+  install [url...]      Install the given URLs, or read them from a
+                        dependency file when none are given (see --file)
+  list [dir...]         List installed dependencies (path<TAB>url)
+  uninstall <name...>   Remove dependencies and their lockfile entries
+  clean                 Remove files not recorded in the lockfile
+  doctor                Report lockfile/filesystem inconsistencies
+  self-update [ref]     Update bashdep itself (default ref: main)
+  version               Print the bashdep version
+  help                  Show this help
+
+Options:
+  --dir=DIR             Destination directory (default: lib)
+  --dev-dir=DIR         Dev destination directory (default: lib/dev)
+  --file=FILE           Dependency file for install (default: .bashdep)
+  --force               Re-download even when already installed
+  --dry-run             Preview actions without touching disk
+  --silent              Suppress informational output
+  --verbose             Print extra context
+  -h, --help            Show this help
+EOF
+}
+
+# CLI entry point, invoked when the script is executed rather than sourced.
+# Usage:
+#   bashdep <command> [options] [args]
+#
+# Returns: the underlying command's exit code; 1 on unknown command/option
+# or missing required arguments.
+function bashdep::main() {
+  local command="" dep_file=".bashdep"
+  local args=() arg
+
+  for arg in "$@"; do
+    case $arg in
+      -h|--help)   bashdep::usage; return 0 ;;
+      --force)     BASHDEP_FORCE=true ;;
+      --dry-run)   BASHDEP_DRY_RUN=true ;;
+      --silent)    BASHDEP_SILENT=true ;;
+      --verbose)   BASHDEP_VERBOSE=true ;;
+      --dir=*)     BASHDEP_DIR="${arg#*=}" ;;
+      --dev-dir=*) BASHDEP_DEV_DIR="${arg#*=}" ;;
+      --file=*)    dep_file="${arg#*=}" ;;
+      -*)
+        echo "Error: Unknown option '$arg'" >&2
+        return 1
+        ;;
+      *)
+        if [[ -z "$command" ]]; then
+          command="$arg"
+        else
+          args+=("$arg")
+        fi
+        ;;
+    esac
+  done
+
+  case $command in
+    "")
+      bashdep::usage >&2
+      return 1
+      ;;
+    install)
+      if [[ ${#args[@]} -gt 0 ]]; then
+        bashdep::install "${args[@]}"
+      else
+        bashdep::install_from "$dep_file"
+      fi
+      ;;
+    list)
+      bashdep::list ${args[@]+"${args[@]}"}
+      ;;
+    uninstall)
+      if [[ ${#args[@]} -eq 0 ]]; then
+        echo "Error: uninstall requires at least one dependency name." >&2
+        return 1
+      fi
+      bashdep::uninstall "${args[@]}"
+      ;;
+    clean)
+      bashdep::clean
+      ;;
+    doctor)
+      bashdep::doctor
+      ;;
+    self-update)
+      bashdep::self_update ${args[@]+"${args[@]}"}
+      ;;
+    version)
+      bashdep::version
+      ;;
+    help)
+      bashdep::usage
+      ;;
+    *)
+      echo "Error: Unknown command '$command'" >&2
+      bashdep::usage >&2
+      return 1
+      ;;
+  esac
+}
+
+# Run the CLI only when executed directly, never when sourced.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  bashdep::main "$@"
+fi
