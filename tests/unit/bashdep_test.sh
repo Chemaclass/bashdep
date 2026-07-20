@@ -1339,3 +1339,45 @@ function test_bashdep_cli_install_curl_failure_exits_nonzero() {
   assert_general_error
   assert_contains "curl exit 7" "$stderr"
 }
+
+# Positional-argument accumulation: the first non-flag token is the
+# command, every later one lands in args[] and is forwarded intact.
+
+function test_bashdep_cli_install_accumulates_multiple_urls() {
+  local output
+  output=$(bash "$BASHDEP_BIN" install --dry-run --dir="$TEST_DIR" \
+    "https://example.com/aaa" "https://example.com/bbb")
+  assert_contains "aaa" "$output"
+  assert_contains "bbb" "$output"
+}
+
+function test_bashdep_cli_uninstall_removes_multiple_names() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" aaa "https://example.com/aaa"
+  printf 'bbb\thttps://example.com/bbb\n' >> "$TEST_DIR/.bashdep.lock"
+  touch "$TEST_DIR/bbb"
+
+  bash "$BASHDEP_BIN" uninstall --dir="$TEST_DIR" aaa bbb >/dev/null
+  assert_file_not_exists "$TEST_DIR/aaa"
+  assert_file_not_exists "$TEST_DIR/bbb"
+}
+
+function test_bashdep_cli_list_forwards_extra_dir_arg() {
+  _seed_lock "$TEST_DIR" main "https://example.com/main"
+  local extra="$TEST_DIR/extra"
+  mkdir -p "$extra"
+  printf 'ex\thttps://example.com/ex\n' > "$extra/.bashdep.lock"
+
+  local output
+  output=$(bash "$BASHDEP_BIN" list --dir="$TEST_DIR" "$extra")
+  assert_contains "$TEST_DIR/main" "$output"
+  assert_contains "$extra/ex" "$output"
+}
+
+function test_bashdep_cli_flag_after_command_still_parsed() {
+  local output
+  output=$(bash "$BASHDEP_BIN" install "https://example.com/tool" \
+    --dry-run --dir="$TEST_DIR")
+  assert_contains "[dry-run]" "$output"
+  assert_contains "$TEST_DIR" "$output"
+}
