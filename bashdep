@@ -160,10 +160,10 @@ function bashdep::uninstall() {
 # bashdep script itself. Skips directories with no lockfile (a missing
 # lockfile is treated as 'don't manage this dir', not 'every file is an
 # orphan'). In dry-run mode, prints intended removals without touching
-# disk. Returns 0 always; failures from individual rm calls are not
-# propagated.
+# disk. Returns 0 when every orphan was removed, otherwise the number of
+# orphans that could not be removed (capped at 255).
 function bashdep::clean() {
-  local removed=0
+  local removed=0 failures=0
   local self_name="${BASH_SOURCE[0]##*/}"
   local dir lock_file file_path seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
@@ -176,14 +176,18 @@ function bashdep::clean() {
       bashdep::_is_orphan "$file_path" "$self_name" "$lock_file" || continue
       if bashdep::is_dry_run; then
         bashdep::_log "[dry-run] Would remove orphan '$file_path'"
-      else
-        rm -f "$file_path"
+        removed=$((removed + 1))
+      elif rm -f "$file_path"; then
         bashdep::_log "> removed orphan '$file_path'"
+        removed=$((removed + 1))
+      else
+        echo "Error: failed to remove orphan '$file_path'." >&2
+        failures=$((failures + 1))
       fi
-      removed=$((removed + 1))
     done
   done
   bashdep::_log "Cleaned $removed orphan(s)."
+  return $(( failures > 255 ? 255 : failures ))
 }
 
 # Check each managed directory for consistency. Reports two kinds of issues:

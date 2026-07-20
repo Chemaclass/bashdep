@@ -1027,6 +1027,32 @@ function test_bashdep_clean_handles_both_dirs() {
   assert_file_exists     "$BASHDEP_DEV_DIR/b"
 }
 
+function test_bashdep_clean_returns_failure_when_rm_fails() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  mock rm "return 1"
+
+  local rc=0
+  bashdep::clean >/dev/null 2>&1 || rc=$?
+  unmock rm
+
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_clean_reports_error_when_rm_fails() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  mock rm "return 1"
+
+  local err
+  err=$(bashdep::clean 2>&1 >/dev/null)
+  unmock rm
+
+  assert_contains "failed to remove orphan" "$err"
+}
+
 function test_bashdep_lock_remove_drops_entry() {
   local lock_file="$TEST_DIR/lock"
   printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' > "$lock_file"
