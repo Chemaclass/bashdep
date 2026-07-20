@@ -75,7 +75,7 @@ lint:
 ifndef LINTER_CHECKER
 	@printf "\e[1m\e[31m%s\e[0m\n" "Editorconfig not installed: Lint not performed!" && exit 1
 else
-	@ec -config .editorconfig && printf "\e[1m\e[32m%s\e[0m\n" "editorconfig-check: OK!"
+	@ec && printf "\e[1m\e[32m%s\e[0m\n" "editorconfig-check: OK!"
 endif
 
 deps:
