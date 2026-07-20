@@ -1,5 +1,6 @@
 # bashdep
 
+[![Release](https://img.shields.io/github/v/release/Chemaclass/bashdep?sort=semver)](https://github.com/Chemaclass/bashdep/releases/latest)
 [![Tests](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml)
 [![Static Analysis](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml)
 [![Lint](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml)
@@ -17,6 +18,15 @@ per-directory `.bashdep.lock`. No registry, no runtime — just `curl`.
 mkdir -p lib
 curl -fsSLo lib/bashdep https://raw.githubusercontent.com/Chemaclass/bashdep/main/bashdep
 chmod +x lib/bashdep
+```
+
+Prefer a pinned, verifiable version? Grab a tagged release and check it
+against the published `checksum`:
+
+```bash
+curl -fsSLo lib/bashdep https://github.com/Chemaclass/bashdep/releases/latest/download/bashdep
+curl -fsSLo checksum     https://github.com/Chemaclass/bashdep/releases/latest/download/checksum
+( cd lib && shasum -a 256 -c ../checksum ) && chmod +x lib/bashdep
 ```
 
 **2. Declare your dependencies in a `.bashdep` file** (one URL per
