@@ -373,6 +373,34 @@ function test_bashdep_should_skip_download_no_when_lockfile_missing() {
   assert_general_error
 }
 
+# _is_orphan predicate tests — shared by clean and doctor.
+
+function test_bashdep_is_orphan_true_when_file_has_no_lock_entry() {
+  _seed_lock "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  bashdep::_is_orphan "$TEST_DIR/orphan" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_orphan_false_when_file_has_lock_entry() {
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  bashdep::_is_orphan "$TEST_DIR/tracked" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_general_error
+}
+
+function test_bashdep_is_orphan_false_for_lockfile_itself() {
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  bashdep::_is_orphan "$TEST_DIR/.bashdep.lock" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_general_error
+}
+
+function test_bashdep_is_orphan_false_for_self_name() {
+  _seed_lock "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/bashdep"
+  bashdep::_is_orphan "$TEST_DIR/bashdep" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_general_error
+}
+
 # setup_directory tests.
 
 function test_bashdep_setup_directory() {
