@@ -270,6 +270,19 @@ function test_bashdep_set_bool_error_includes_label_and_value() {
   assert_contains "bogus"   "$err"
 }
 
+function test_bashdep_setup_does_not_leak_loop_variable() {
+  unset param
+  bashdep::setup dir="lib"
+  assert_empty "${param:-}"
+}
+
+function test_bashdep_install_does_not_leak_loop_variable() {
+  unset dep
+  BASHDEP_DRY_RUN=true
+  bashdep::install "https://example.com/foo.sh" >/dev/null
+  assert_empty "${dep:-}"
+}
+
 function test_bashdep_install_caps_failure_count_at_255() {
   mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "return 1"

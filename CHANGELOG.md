@@ -10,6 +10,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Fixed
 
+- `bashdep::setup` and `bashdep::install` no longer leak their loop
+  variables (`param`, `dep`) into the sourcing shell's global scope.
+
 ## [0.5.0] - 2026-07-20
 
 ### Added
