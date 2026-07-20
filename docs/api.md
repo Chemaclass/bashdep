@@ -1,6 +1,7 @@
 # API reference
 
-Public functions exposed by `source lib/bashdep`.
+Public functions exposed by `source lib/bashdep`. For lockfile rules,
+dev-dependency routing, and error semantics see [Behavior](behavior.md).
 
 - [CLI](#cli)
 - [`bashdep::install`](#bashdepinstall)
@@ -177,5 +178,5 @@ Pipe into `awk` / `cut` for audit and diff tooling.
 Print the bashdep version.
 
 ```bash
-bashdep::version  # 0.3.0
+bashdep::version  # e.g. 0.4.2
 ```

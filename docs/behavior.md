@@ -1,6 +1,8 @@
 # Behavior
 
-How bashdep decides what to download, where to put it, and when to skip.
+How bashdep decides what to download, where to put it, and when to
+skip. For function signatures and the CLI see the
+[API reference](api.md).
 
 - [Lockfile and idempotency](#lockfile-and-idempotency)
 - [Dev dependencies](#dev-dependencies)
