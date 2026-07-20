@@ -1313,8 +1313,9 @@ function test_bashdep_cli_self_update_passes_ref() {
 function _stub_curl_on_path() {
   mkdir -p "$TEST_DIR/bin"
   # shellcheck disable=SC2016 # Single quotes intentional: $1/$2 must expand in the stub, not here.
-  printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do\n  if [ "$1" = "-o" ]; then : > "$2"; shift 2; else shift; fi\ndone\nexit 0\n' \
-    > "$TEST_DIR/bin/curl"
+  printf '%s\n' '#!/bin/sh' 'while [ $# -gt 0 ]; do' \
+    '  if [ "$1" = "-o" ]; then : > "$2"; shift 2; else shift; fi' \
+    'done' 'exit 0' > "$TEST_DIR/bin/curl"
   chmod +x "$TEST_DIR/bin/curl"
 }
 
