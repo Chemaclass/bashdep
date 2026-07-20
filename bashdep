@@ -5,6 +5,7 @@ BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
 BASHDEP_LOCK_FILE=".bashdep.lock"
+BASHDEP_DEP_FILE=".bashdep"
 BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
@@ -101,7 +102,7 @@ function bashdep::setup() {
 # in the current directory when no file is given. Returns the failure
 # count (capped at 255), or 1 if the file is unreadable.
 function bashdep::install_from() {
-  local file=${1:-.bashdep}
+  local file=${1:-$BASHDEP_DEP_FILE}
   if [[ ! -f "$file" ]]; then
     echo "Error: dependency file '$file' not found." >&2
     return 1
@@ -414,7 +415,7 @@ function bashdep::_is_orphan() {
 function bashdep::_lock_mktemp() {
   local lock_file=$1 lock_dir
   lock_dir=$(dirname "$lock_file")
-  mktemp "$lock_dir/.bashdep.lock.XXXXXX" || {
+  mktemp "$lock_dir/$BASHDEP_LOCK_FILE.XXXXXX" || {
     echo "Error: Could not create temp file for lockfile update." >&2
     return 1
   }
@@ -498,7 +499,7 @@ EOF
 # Returns: the underlying command's exit code; 1 on unknown command/option
 # or missing required arguments.
 function bashdep::main() {
-  local command="" dep_file=".bashdep"
+  local command="" dep_file="$BASHDEP_DEP_FILE"
   local args=() arg
 
   for arg in "$@"; do
