@@ -66,7 +66,8 @@ ifndef STATIC_ANALYSIS_CHECKER
 	@printf "\e[1m\e[31m%s\e[0m\n" "Shellcheck not installed: Static analysis not performed!" && exit 1
 else
 	@find . -type f \( -name '*.sh' -o -name 'bashdep' -o -name 'pre-commit' \) \
-		-not -path './.git/*' -not -path './vendor/*' -not -path './lib/*' -not -path './local/*' \
+		-not -path './.git/*' -not -path './.claude/*' -not -path './vendor/*' \
+		-not -path './lib/*' -not -path './local/*' \
 		-exec shellcheck -e SC1091 -e SC2155 -C {} + \
 		&& printf "\e[1m\e[32m%s\e[0m\n" "ShellCheck: OK!"
 endif

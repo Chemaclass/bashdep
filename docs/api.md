@@ -103,7 +103,9 @@ dir is unmanaged".
 bashdep::clean
 ```
 
-Always returns 0. Honors dry-run mode.
+Returns 0 when every orphan was removed, otherwise the number of orphans
+that could not be removed (e.g. a permission error), capped at 255. A
+failed removal is reported to stderr. Honors dry-run mode.
 
 ## `bashdep::doctor`
 

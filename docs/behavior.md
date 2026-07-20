@@ -61,6 +61,9 @@ both by default.
   is missing or unreadable.
 - `bashdep::setup` returns `1` on unknown params or non-boolean values
   for `silent` / `force`.
+- `bashdep::clean` returns the number of orphans it could not remove
+  (capped at 255), reporting each failed removal to stderr; `0` when all
+  orphans were removed.
 - `curl` failures print the exit code to stderr (e.g. `22` = HTTP error,
   `6` = DNS, `7` = connect refused).
 

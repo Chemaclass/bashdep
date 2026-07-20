@@ -270,6 +270,19 @@ function test_bashdep_set_bool_error_includes_label_and_value() {
   assert_contains "bogus"   "$err"
 }
 
+function test_bashdep_setup_does_not_leak_loop_variable() {
+  unset param
+  bashdep::setup dir="lib"
+  assert_empty "${param:-}"
+}
+
+function test_bashdep_install_does_not_leak_loop_variable() {
+  unset dep
+  BASHDEP_DRY_RUN=true
+  bashdep::install "https://example.com/foo.sh" >/dev/null
+  assert_empty "${dep:-}"
+}
+
 function test_bashdep_install_caps_failure_count_at_255() {
   mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "return 1"
@@ -370,6 +383,34 @@ function test_bashdep_should_skip_download_no_when_force_enabled() {
 function test_bashdep_should_skip_download_no_when_lockfile_missing() {
   touch "$TEST_DIR/foo"
   bashdep::_should_skip_download "$TEST_DIR/foo" "$TEST_DIR/.bashdep.lock" foo https://example.com/foo
+  assert_general_error
+}
+
+# _is_orphan predicate tests — shared by clean and doctor.
+
+function test_bashdep_is_orphan_true_when_file_has_no_lock_entry() {
+  _seed_lock "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  bashdep::_is_orphan "$TEST_DIR/orphan" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_successful_code "$?"
+}
+
+function test_bashdep_is_orphan_false_when_file_has_lock_entry() {
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  bashdep::_is_orphan "$TEST_DIR/tracked" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_general_error
+}
+
+function test_bashdep_is_orphan_false_for_lockfile_itself() {
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  bashdep::_is_orphan "$TEST_DIR/.bashdep.lock" bashdep "$TEST_DIR/.bashdep.lock"
+  assert_general_error
+}
+
+function test_bashdep_is_orphan_false_for_self_name() {
+  _seed_lock "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/bashdep"
+  bashdep::_is_orphan "$TEST_DIR/bashdep" bashdep "$TEST_DIR/.bashdep.lock"
   assert_general_error
 }
 
@@ -984,6 +1025,32 @@ function test_bashdep_clean_handles_both_dirs() {
   assert_file_not_exists "$BASHDEP_DEV_DIR/orphan_dev"
   assert_file_exists     "$BASHDEP_DIR/a"
   assert_file_exists     "$BASHDEP_DEV_DIR/b"
+}
+
+function test_bashdep_clean_returns_failure_when_rm_fails() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  mock rm "return 1"
+
+  local rc=0
+  bashdep::clean >/dev/null 2>&1 || rc=$?
+  unmock rm
+
+  assert_equals 1 "$rc"
+}
+
+function test_bashdep_clean_reports_error_when_rm_fails() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tracked https://example.com/tracked
+  touch "$TEST_DIR/orphan"
+  mock rm "return 1"
+
+  local err
+  err=$(bashdep::clean 2>&1 >/dev/null)
+  unmock rm
+
+  assert_contains "failed to remove orphan" "$err"
 }
 
 function test_bashdep_lock_remove_drops_entry() {

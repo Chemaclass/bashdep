@@ -4,11 +4,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-### Added
-
 ### Changed
 
+- `bashdep::clean` now reports failed orphan removals to stderr and
+  returns the count of orphans it could not remove (capped at 255),
+  instead of always returning `0` and printing a `> removed orphan` line
+  even when the `rm` failed.
+
 ### Fixed
+
+- `bashdep::setup` and `bashdep::install` no longer leak their loop
+  variables (`param`, `dep`) into the sourcing shell's global scope.
 
 ## [0.5.0] - 2026-07-20
 
