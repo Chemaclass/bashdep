@@ -6,14 +6,20 @@
 #   ./release.sh <version> [--dry-run] [--force] [--no-gh] [--remote=NAME]
 #
 # What it does:
-#   1. Validate semver and working-tree state.
+#   1. Validate semver, tooling, working-tree state, and CHANGELOG content.
 #   2. Bump BASHDEP_VERSION in the bashdep script.
 #   3. Roll the CHANGELOG: rename [Unreleased] → [X.Y.Z] - YYYY-MM-DD,
 #      add a new empty Unreleased section, refresh compare links.
 #   4. Run make test / sa / lint as a release gate.
-#   5. Commit and tag the release.
-#   6. Push commit + tag to origin.
-#   7. Create a GitHub release with the bashdep script attached as an asset.
+#   5. Build the release asset into dist/: copy the bumped bashdep,
+#      syntax-check it (bash -n), and write a sha256 checksum.
+#   6. Commit and tag the release.
+#   7. Push commit + tag to origin.
+#   8. Create a GitHub release, upload bashdep + checksum, and verify
+#      both assets attached.
+#
+# On failure before the commit, staged file mutations and dist/ are
+# reverted automatically; after the commit, recovery steps are printed.
 #
 # Flags:
 #   --dry-run     Preview every step. No file/git/network mutations.
@@ -25,12 +31,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
 readonly REPO_PATH="Chemaclass/bashdep"
 readonly REPO_URL="https://github.com/${REPO_PATH}"
 readonly RELEASE_ASSET="bashdep"
+readonly DIST_DIR="dist"
+readonly CHECKSUM_FILE="checksum"
 readonly MAIN_BRANCH="main"
+
+# Tracks how far the release has progressed so the cleanup trap knows
+# whether it is safe to auto-revert (before commit) or must only advise
+# (after commit/push). Values: init | mutated | committed | pushed | done.
+STAGE="init"
 
 VERSION=""
 BUMP_LEVEL="minor"
@@ -61,6 +73,32 @@ run() {
   else
     "$@"
   fi
+}
+
+# Print the SHA-256 of a file as "<hash>  <basename>", portable across
+# macOS (shasum) and Linux (sha256sum). Runs from the file's directory so
+# the recorded name is the bare basename, not a path.
+sha256_of() {
+  local path=$1 dir base
+  dir=$(dirname "$path")
+  base=$(basename "$path")
+  if command -v shasum >/dev/null 2>&1; then
+    ( cd "$dir" && shasum -a 256 "$base" )
+  else
+    ( cd "$dir" && sha256sum "$base" )
+  fi
+}
+
+# Return 0 when the [Unreleased] section has at least one non-blank,
+# non-heading line — i.e. there is something to release.
+unreleased_has_content() {
+  awk '
+    /^## \[Unreleased\]/ { in_section = 1; next }
+    /^## \[/            { in_section = 0 }
+    in_section && /^###/ { next }
+    in_section && NF     { found = 1 }
+    END                  { exit found ? 0 : 1 }
+  ' CHANGELOG.md
 }
 
 # --- CLI parsing -------------------------------------------------------------
@@ -143,12 +181,39 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || { err "Required command not found: $1"; exit 1; }
 }
 
+# Like require_cmd, but in --dry-run a missing command only warns — dry-run
+# never actually runs the gates or touches the network, so previewing must
+# not depend on the full release toolchain being installed.
+require_cmd_soft() {
+  command -v "$1" >/dev/null 2>&1 && return 0
+  if $DRY_RUN; then
+    warn "missing '$1' — allowed in --dry-run"
+  else
+    err "Required command not found: $1"
+    exit 1
+  fi
+}
+
 preflight() {
   log "Pre-flight checks"
 
   require_cmd git
   require_cmd awk
   require_cmd sed
+  # Gate + build tools — checked up front so a missing one fails before any
+  # file is mutated, not halfway through run_gates. Soft in dry-run, which
+  # neither runs the gates nor builds.
+  require_cmd_soft make
+  require_cmd_soft shellcheck
+  require_cmd_soft ec
+  if ! command -v shasum >/dev/null 2>&1 && ! command -v sha256sum >/dev/null 2>&1; then
+    if $DRY_RUN; then
+      warn "missing 'shasum'/'sha256sum' — allowed in --dry-run"
+    else
+      err "Need 'shasum' or 'sha256sum' to checksum the release asset."
+      exit 1
+    fi
+  fi
   if $WITH_GH_RELEASE; then require_cmd gh; fi
   ok "required commands present"
 
@@ -211,7 +276,11 @@ preflight() {
     err "CHANGELOG.md has no '[Unreleased]' section to roll."
     exit 1
   fi
-  ok "CHANGELOG has [Unreleased] section"
+  if ! unreleased_has_content; then
+    err "CHANGELOG '[Unreleased]' section is empty — nothing to release."
+    exit 1
+  fi
+  ok "CHANGELOG [Unreleased] has content"
 }
 
 confirm() {
@@ -230,6 +299,7 @@ bump_version() {
     plan "sed bashdep BASHDEP_VERSION=$PREVIOUS_VERSION → $VERSION"
     return
   fi
+  STAGE="mutated"
   sed -i.bak -E "s/^BASHDEP_VERSION=\"[^\"]+\"$/BASHDEP_VERSION=\"$VERSION\"/" bashdep
   rm -f bashdep.bak
   if ! grep -q "BASHDEP_VERSION=\"$VERSION\"" bashdep; then
@@ -297,11 +367,38 @@ run_gates() {
   done_ok "editorconfig pass"
 }
 
+# Stage the release asset into $DIST_DIR: copy the (already version-bumped)
+# bashdep script, syntax-check it, and write a sha256 checksum alongside.
+# Both files are uploaded to the GitHub release. Honors dry-run.
+build_asset() {
+  log "Build release asset"
+  local out="$DIST_DIR/$RELEASE_ASSET"
+  if $DRY_RUN; then
+    plan "stage $RELEASE_ASSET → $out, bash -n, write $DIST_DIR/$CHECKSUM_FILE"
+    return
+  fi
+
+  rm -rf "$DIST_DIR"
+  mkdir -p "$DIST_DIR"
+  cp "$RELEASE_ASSET" "$out"
+  chmod +x "$out"
+
+  if ! bash -n "$out"; then
+    err "Built asset failed 'bash -n' syntax check: $out"
+    exit 1
+  fi
+  done_ok "asset syntax valid"
+
+  sha256_of "$out" > "$DIST_DIR/$CHECKSUM_FILE"
+  done_ok "checksum written ($DIST_DIR/$CHECKSUM_FILE)"
+}
+
 commit_and_tag() {
   log "Commit + tag"
   run git add bashdep CHANGELOG.md
   run git commit -m "chore(release): $VERSION"
   run git tag -a "$VERSION" -m "Release $VERSION"
+  STAGE="committed"
   done_ok "committed and tagged $VERSION"
 }
 
@@ -309,6 +406,7 @@ push() {
   log "Push to $REMOTE"
   run git push "$REMOTE" "$MAIN_BRANCH"
   run git push "$REMOTE" "$VERSION"
+  STAGE="pushed"
   done_ok "pushed branch + tag"
 }
 
@@ -317,7 +415,9 @@ create_gh_release() {
     warn "Skipping GitHub release step (--no-gh)"
     return
   fi
-  log "Create GitHub release + attach asset"
+  log "Create GitHub release + attach assets"
+  local asset="$DIST_DIR/$RELEASE_ASSET"
+  local checksum="$DIST_DIR/$CHECKSUM_FILE"
   local notes_url="$REPO_URL/blob/$VERSION/CHANGELOG.md"
   local body
   body="See [CHANGELOG.md]($notes_url) for the full notes.
@@ -326,22 +426,62 @@ create_gh_release() {
 \`\`\`bash
 curl -fsSLo lib/bashdep $REPO_URL/releases/download/$VERSION/$RELEASE_ASSET
 chmod +x lib/bashdep
-\`\`\`"
+\`\`\`
+
+Verify with the attached \`$CHECKSUM_FILE\`."
   if $DRY_RUN; then
-    plan "gh release create $VERSION --title 'Release $VERSION' --notes <generated> $RELEASE_ASSET"
+    plan "gh release create $VERSION --title 'Release $VERSION' --notes <generated> $asset $checksum"
     return
   fi
   gh release create "$VERSION" \
     --repo "$REPO_PATH" \
     --title "Release $VERSION" \
     --notes "$body" \
-    "$RELEASE_ASSET"
-  done_ok "GitHub release created with $RELEASE_ASSET attached"
+    "$asset" "$checksum"
+  done_ok "GitHub release created"
+
+  # Verify both assets actually attached (guards against a partial upload).
+  local attached
+  attached=$(gh release view "$VERSION" --repo "$REPO_PATH" \
+    --json assets --jq '.assets[].name' 2>/dev/null || true)
+  local name
+  for name in "$RELEASE_ASSET" "$CHECKSUM_FILE"; do
+    case $'\n'"$attached"$'\n' in
+      *$'\n'"$name"$'\n'*) ok "asset attached: $name" ;;
+      *) err "asset '$name' missing from release $VERSION"; exit 1 ;;
+    esac
+  done
 }
 
 # --- Main --------------------------------------------------------------------
 
+# On unexpected exit, undo work that is safe to undo. Before the commit we
+# own the file mutations and the dist/ dir, so revert them. After the commit
+# the state is on disk (and maybe pushed), so only advise — never rewrite
+# history automatically.
+cleanup() {
+  local code=$?
+  [[ $code -eq 0 ]] && return 0
+  $DRY_RUN && return 0
+  case $STAGE in
+    mutated)
+      warn "release failed after mutating files — reverting"
+      git checkout -- bashdep CHANGELOG.md 2>/dev/null || true
+      rm -rf "$DIST_DIR"
+      ;;
+    committed)
+      warn "release failed after commit/tag — undo with:"
+      warn "  git reset --hard HEAD~1 && git tag -d $VERSION"
+      ;;
+    pushed)
+      warn "release failed after push — the tag is on $REMOTE."
+      warn "  finish manually or delete the remote tag to retry."
+      ;;
+  esac
+}
+
 main() {
+  cd "$SCRIPT_DIR"
   parse_args "$@"
   preflight
 
@@ -350,14 +490,17 @@ main() {
   fi
 
   confirm
+  trap cleanup EXIT
 
   bump_version
   roll_changelog
   run_gates
+  build_asset
   commit_and_tag
   push
   create_gh_release
 
+  STAGE="done"
   log "Done."
   done_ok "Release $VERSION published."
   if ! $DRY_RUN; then
@@ -365,4 +508,8 @@ main() {
   fi
 }
 
-main "$@"
+# Run only when executed directly; sourcing (e.g. from tests) exposes the
+# functions without side effects.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

@@ -12,3 +12,6 @@
 # third party dependencies
 lib/
 vendor/
+
+# release build output
+dist/

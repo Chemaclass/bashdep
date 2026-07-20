@@ -12,6 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   (`--dir`, `--dev-dir`, `--force`, `--dry-run`, `--silent`,
   `--verbose`), plus `--file=FILE` for `install`. Exit codes propagate
   from the underlying functions; sourcing stays side-effect-free.
+- Releases now ship a `checksum` (sha256) asset alongside the `bashdep`
+  script so downloads can be verified.
 
 ### Changed
 
