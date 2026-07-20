@@ -1088,6 +1088,71 @@ function test_bashdep_install_dev_lockfile_separated_from_main() {
   assert_not_contains "runtime" "$dev_lock"
 }
 
+function test_bashdep_setup_directory_mkdir_failure_returns_error() {
+  mock mkdir "return 1"
+
+  local stderr
+  stderr=$(bashdep::setup_directory "$TEST_DIR/sub" 2>&1 >/dev/null)
+  assert_general_error
+  assert_contains "Could not create directory" "$stderr"
+}
+
+function test_bashdep_self_update_mv_failure_returns_error() {
+  mock curl "true"
+  mock mv "return 1"
+
+  local stderr
+  stderr=$(bashdep::self_update main "$TEST_DIR/bashdep" 2>&1 >/dev/null)
+  assert_general_error
+  assert_contains "failed to write" "$stderr"
+}
+
+function test_bashdep_download_url_mktemp_failure_returns_error() {
+  mock curl "true"
+  mock mktemp "return 1"
+
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null 2>&1
+  assert_general_error
+}
+
+function test_bashdep_doctor_silent_suppresses_output_keeps_exit_code() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_SILENT=true
+  _seed_lock "$TEST_DIR" missing "https://example.com/missing"
+
+  local output
+  output=$(bashdep::doctor)
+  assert_general_error
+  assert_empty "$output"
+}
+
+function test_bashdep_clean_silent_suppresses_output_still_removes() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_SILENT=true
+  _seed_installed "$TEST_DIR" kept "https://example.com/kept"
+  touch "$TEST_DIR/orphan"
+
+  local output
+  output=$(bashdep::clean)
+  assert_empty "$output"
+  assert_file_not_exists "$TEST_DIR/orphan"
+}
+
+function test_bashdep_uninstall_silent_keeps_errors_on_stderr() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_SILENT=true
+
+  local stderr
+  stderr=$(bashdep::uninstall nope 2>&1 >/dev/null)
+  assert_contains "not found" "$stderr"
+}
+
+function test_bashdep_list_skips_blank_dirs() {
+  BASHDEP_DIR=""
+  BASHDEP_DEV_DIR=""
+  assert_empty "$(bashdep::list)"
+}
+
 # CLI tests — run the bashdep script as an executable ($BASHDEP_BIN).
 # Never hit the network: mutating commands always pass --dry-run or
 # operate on seeded fixtures in $TEST_DIR.
@@ -1204,4 +1269,72 @@ function test_bashdep_sourcing_does_not_invoke_cli() {
   local output
   output=$(bash -c "source '$BASHDEP_BIN' && echo SOURCED_OK")
   assert_equals "SOURCED_OK" "$output"
+}
+
+function test_bashdep_cli_short_help_flag_prints_usage() {
+  local output
+  output=$(bash "$BASHDEP_BIN" -h)
+  assert_contains "Usage:" "$output"
+}
+
+function test_bashdep_cli_force_flag_bypasses_skip() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+
+  local output
+  output=$(bash "$BASHDEP_BIN" install --force --dry-run --dir="$TEST_DIR" "$url")
+  assert_contains "[dry-run] Would download" "$output"
+}
+
+function test_bashdep_cli_verbose_flag_logs_url_on_skip() {
+  local url="https://example.com/tool"
+  _seed_installed "$TEST_DIR" tool "$url"
+
+  local output
+  output=$(bash "$BASHDEP_BIN" install --verbose --dir="$TEST_DIR" "$url")
+  assert_contains "url: $url" "$output"
+}
+
+function test_bashdep_cli_dev_dir_flag_routes_dev_suffix() {
+  local output
+  output=$(bash "$BASHDEP_BIN" install --dry-run --dev-dir="$TEST_DIR/devx" \
+    "https://example.com/tool@dev")
+  assert_contains "$TEST_DIR/devx" "$output"
+}
+
+function test_bashdep_cli_self_update_passes_ref() {
+  local output
+  output=$(bash "$BASHDEP_BIN" self-update --dry-run 1.2.3)
+  assert_contains "/1.2.3/" "$output"
+}
+
+# Stub curl on PATH so the CLI subprocess performs a full install
+# without touching the network.
+function _stub_curl_on_path() {
+  mkdir -p "$TEST_DIR/bin"
+  # shellcheck disable=SC2016 # Single quotes intentional: $1/$2 must expand in the stub, not here.
+  printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do\n  if [ "$1" = "-o" ]; then : > "$2"; shift 2; else shift; fi\ndone\nexit 0\n' \
+    > "$TEST_DIR/bin/curl"
+  chmod +x "$TEST_DIR/bin/curl"
+}
+
+function test_bashdep_cli_install_downloads_and_writes_lockfile() {
+  _stub_curl_on_path
+  PATH="$TEST_DIR/bin:$PATH" bash "$BASHDEP_BIN" install --dir="$TEST_DIR" \
+    "https://example.com/tool" >/dev/null
+
+  assert_file_exists "$TEST_DIR/tool"
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_cli_install_curl_failure_exits_nonzero() {
+  mkdir -p "$TEST_DIR/bin"
+  printf '#!/bin/sh\nexit 7\n' > "$TEST_DIR/bin/curl"
+  chmod +x "$TEST_DIR/bin/curl"
+
+  local stderr
+  stderr=$(PATH="$TEST_DIR/bin:$PATH" bash "$BASHDEP_BIN" install \
+    --dir="$TEST_DIR" "https://example.com/tool" 2>&1 >/dev/null)
+  assert_general_error
+  assert_contains "curl exit 7" "$stderr"
 }
