@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.5.0] - 2026-07-20
+
+### Added
+
 - **CLI**: `bashdep` now runs as an executable, not only when sourced.
   Dispatches `install`, `list`, `uninstall`, `clean`, `doctor`,
   `self-update`, `version`, and `help`. Flags mirror `bashdep::setup`
@@ -100,7 +108,8 @@ download URLs return 404. Git tags are preserved for history.
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/Chemaclass/bashdep/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.2
 [0.4.1]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.1
 [0.4.0]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.0
