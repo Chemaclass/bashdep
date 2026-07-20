@@ -4,8 +4,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-### Added
-
 ### Changed
 
 - `bashdep::clean` now reports failed orphan removals to stderr and
