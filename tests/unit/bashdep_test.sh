@@ -11,6 +11,7 @@ function set_up() {
   BASHDEP_DRY_RUN=false
   BASHDEP_VERBOSE=false
   TEST_DIR=$(mktemp -d)
+  BASHDEP_BIN="$(cd "$(current_dir)/../.." && pwd)/bashdep"
 }
 
 function tear_down() {
@@ -670,9 +671,13 @@ function test_bashdep_install_lockfile_contains_all_deps() {
   assert_contains "bbb" "$lock"
 }
 
-function test_bashdep_install_from_requires_file_arg() {
-  bashdep::install_from "" 2>/dev/null
-  assert_general_error
+function test_bashdep_install_from_defaults_to_bashdep_file() {
+  printf 'https://example.com/default-tool\n' > "$TEST_DIR/.bashdep"
+  BASHDEP_DRY_RUN=true
+
+  local output
+  output=$(cd "$TEST_DIR" && bashdep::install_from)
+  assert_contains "default-tool" "$output"
 }
 
 function test_bashdep_install_from_errors_on_missing_file() {
@@ -1081,4 +1086,122 @@ function test_bashdep_install_dev_lockfile_separated_from_main() {
   assert_not_contains "devtool" "$main_lock"
   assert_contains     "devtool" "$dev_lock"
   assert_not_contains "runtime" "$dev_lock"
+}
+
+# CLI tests — run the bashdep script as an executable ($BASHDEP_BIN).
+# Never hit the network: mutating commands always pass --dry-run or
+# operate on seeded fixtures in $TEST_DIR.
+
+function test_bashdep_cli_version_prints_version() {
+  local output
+  output=$(bash "$BASHDEP_BIN" version)
+  assert_equals "$BASHDEP_VERSION" "$output"
+}
+
+function test_bashdep_cli_help_prints_usage() {
+  local output
+  output=$(bash "$BASHDEP_BIN" --help)
+  assert_contains "Usage:" "$output"
+}
+
+function test_bashdep_cli_help_command_prints_usage() {
+  local output
+  output=$(bash "$BASHDEP_BIN" help)
+  assert_contains "Usage:" "$output"
+}
+
+function test_bashdep_cli_no_args_prints_usage_and_fails() {
+  bash "$BASHDEP_BIN" >/dev/null 2>&1
+  assert_general_error
+}
+
+function test_bashdep_cli_unknown_command_fails() {
+  local stderr
+  stderr=$(bash "$BASHDEP_BIN" bogus 2>&1 >/dev/null)
+  assert_contains "Unknown command" "$stderr"
+}
+
+function test_bashdep_cli_unknown_option_fails() {
+  local stderr
+  stderr=$(bash "$BASHDEP_BIN" install --bogus 2>&1 >/dev/null)
+  assert_contains "Unknown option" "$stderr"
+}
+
+function test_bashdep_cli_install_url_dry_run_downloads_nothing() {
+  local output
+  output=$(bash "$BASHDEP_BIN" install --dry-run --dir="$TEST_DIR" \
+    "https://example.com/tool")
+  assert_contains "[dry-run]" "$output"
+  assert_file_not_exists "$TEST_DIR/tool"
+}
+
+function test_bashdep_cli_install_reads_default_bashdep_file() {
+  printf 'https://example.com/from-file\n' > "$TEST_DIR/.bashdep"
+  local output
+  output=$(cd "$TEST_DIR" && bash "$BASHDEP_BIN" install --dry-run)
+  assert_contains "from-file" "$output"
+}
+
+function test_bashdep_cli_install_respects_file_flag() {
+  printf 'https://example.com/custom-tool\n' > "$TEST_DIR/deps.txt"
+  local output
+  output=$(bash "$BASHDEP_BIN" install --dry-run --file="$TEST_DIR/deps.txt")
+  assert_contains "custom-tool" "$output"
+}
+
+function test_bashdep_cli_install_missing_default_file_fails() {
+  local stderr
+  stderr=$(cd "$TEST_DIR" && bash "$BASHDEP_BIN" install 2>&1 >/dev/null)
+  assert_contains "not found" "$stderr"
+}
+
+function test_bashdep_cli_install_silent_suppresses_output() {
+  local output
+  output=$(bash "$BASHDEP_BIN" install --dry-run --silent --dir="$TEST_DIR" \
+    "https://example.com/tool")
+  assert_empty "$output"
+}
+
+function test_bashdep_cli_list_prints_lock_entries() {
+  _seed_installed "$TEST_DIR" tool "https://example.com/tool"
+  local output
+  output=$(bash "$BASHDEP_BIN" list --dir="$TEST_DIR")
+  assert_contains "$TEST_DIR/tool	https://example.com/tool" "$output"
+}
+
+function test_bashdep_cli_uninstall_removes_dep() {
+  _seed_installed "$TEST_DIR" tool "https://example.com/tool"
+  bash "$BASHDEP_BIN" uninstall --dir="$TEST_DIR" tool >/dev/null
+  assert_file_not_exists "$TEST_DIR/tool"
+}
+
+function test_bashdep_cli_uninstall_requires_name() {
+  bash "$BASHDEP_BIN" uninstall --dir="$TEST_DIR" >/dev/null 2>&1
+  assert_general_error
+}
+
+function test_bashdep_cli_clean_removes_orphans() {
+  _seed_installed "$TEST_DIR" kept "https://example.com/kept"
+  touch "$TEST_DIR/orphan"
+  bash "$BASHDEP_BIN" clean --dir="$TEST_DIR" >/dev/null
+  assert_file_not_exists "$TEST_DIR/orphan"
+  assert_file_exists "$TEST_DIR/kept"
+}
+
+function test_bashdep_cli_doctor_exit_code_is_issue_count() {
+  _seed_lock "$TEST_DIR" missing "https://example.com/missing"
+  bash "$BASHDEP_BIN" doctor --dir="$TEST_DIR" >/dev/null
+  assert_general_error
+}
+
+function test_bashdep_cli_self_update_dry_run_prints_intent() {
+  local output
+  output=$(bash "$BASHDEP_BIN" self-update --dry-run)
+  assert_contains "[dry-run] Would update" "$output"
+}
+
+function test_bashdep_sourcing_does_not_invoke_cli() {
+  local output
+  output=$(bash -c "source '$BASHDEP_BIN' && echo SOURCED_OK")
+  assert_equals "SOURCED_OK" "$output"
 }

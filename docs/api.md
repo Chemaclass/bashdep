@@ -1,7 +1,9 @@
 # API reference
 
-Public functions exposed by `source lib/bashdep`.
+Public functions exposed by `source lib/bashdep`. For lockfile rules,
+dev-dependency routing, and error semantics see [Behavior](behavior.md).
 
+- [CLI](#cli)
 - [`bashdep::install`](#bashdepinstall)
 - [`bashdep::install_from`](#bashdepinstall_from)
 - [`bashdep::uninstall`](#bashdepuninstall)
@@ -11,6 +13,31 @@ Public functions exposed by `source lib/bashdep`.
 - [`bashdep::setup`](#bashdepsetup)
 - [`bashdep::list`](#bashdeplist)
 - [`bashdep::version`](#bashdepversion)
+
+## CLI
+
+Every command is also available by executing the script directly —
+no `source` needed:
+
+```bash
+./lib/bashdep install                      # install from ./.bashdep
+./lib/bashdep install https://example.com/tool.sh
+./lib/bashdep list
+./lib/bashdep uninstall tool.sh
+./lib/bashdep clean --dry-run
+./lib/bashdep doctor
+./lib/bashdep self-update
+./lib/bashdep --help
+```
+
+Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters:
+`--dir=DIR`, `--dev-dir=DIR`, `--force`, `--dry-run`, `--silent`,
+`--verbose`. `install` also accepts `--file=FILE` to point at a
+dependency file other than `.bashdep`.
+
+Exit codes match the underlying function's return value (e.g. `doctor`
+exits with the issue count), so the CLI drops into CI pipelines as-is.
+Sourcing the script never triggers the CLI.
 
 ## `bashdep::install`
 
@@ -30,10 +57,12 @@ Returns the number of failed downloads (0 on success, capped at 255).
 
 Read a dependency list from a file and install every entry. One URL per
 line; blank lines and `#` comments are ignored; leading/trailing
-whitespace is stripped.
+whitespace is stripped. Defaults to `.bashdep` in the current directory
+when called without arguments.
 
 ```bash
-bashdep::install_from .bashdep
+bashdep::install_from            # reads ./.bashdep
+bashdep::install_from deps.txt   # reads a custom file
 ```
 
 Example `.bashdep`:
@@ -149,5 +178,5 @@ Pipe into `awk` / `cut` for audit and diff tooling.
 Print the bashdep version.
 
 ```bash
-bashdep::version  # 0.3.0
+bashdep::version  # e.g. 0.4.2
 ```

@@ -35,8 +35,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Install bashunit"
-        run: |
-          curl -s https://bashunit.typeddevs.com/install.sh | bash -s lib 0.17.0
+        run: bash install-dependencies.sh
 
       - name: Run Tests
         run: ${{ matrix.script_name }}

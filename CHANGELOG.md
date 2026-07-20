@@ -4,6 +4,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+
+- CLI mode: executing `bashdep` directly (not sourced) now dispatches
+  commands — `install`, `list`, `uninstall`, `clean`, `doctor`,
+  `self-update`, `version`, `help`. Flags mirror `bashdep::setup`
+  (`--dir`, `--dev-dir`, `--force`, `--dry-run`, `--silent`,
+  `--verbose`) plus `--file=FILE` for `install`. Exit codes propagate
+  from the underlying functions. Sourcing is unaffected.
+
+### Changed
+
+- `bashdep::install_from` now defaults to `.bashdep` in the current
+  directory when called without arguments (previously it required a
+  file path and returned `1`).
+
 ## [0.4.2] - 2026-05-03
 
 First usable 0.4 release. Supersedes the yanked 0.4.0 and 0.4.1 — see

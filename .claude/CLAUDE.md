@@ -88,6 +88,8 @@ All public functions live in the single `bashdep` script under the
 | `bashdep::doctor` | Report missing/orphan inconsistencies |
 | `bashdep::self_update` | Re-download `bashdep` from upstream |
 | `bashdep::version` | Print `BASHDEP_VERSION` |
+| `bashdep::main` | CLI dispatcher (runs when the script is executed, not sourced) |
+| `bashdep::usage` | Print CLI usage/help text |
 
 Private helpers use a leading `_` (`bashdep::_classify_dep`, `_lock_get`, …).
 
