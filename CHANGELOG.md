@@ -14,6 +14,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   (suppressed by `silent`).
 - CLI `--version` flag prints the version (alongside the existing
   `version` command).
+- CLI `completion [bash|zsh]` prints a shell completion script for the
+  commands and flags. Install with `source <(bashdep completion bash)`.
 
 ### Changed
 

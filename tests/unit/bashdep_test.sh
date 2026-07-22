@@ -1511,6 +1511,37 @@ function test_bashdep_cli_version_flag_prints_version() {
   assert_equals "$BASHDEP_VERSION" "$(bashdep::main --version)"
 }
 
+function test_bashdep_completion_bash_emits_script() {
+  local out; out=$(bashdep::completion bash)
+  assert_contains "complete -F _bashdep bashdep" "$out"
+  assert_contains "install" "$out"
+}
+
+function test_bashdep_completion_defaults_to_bash() {
+  assert_contains "complete -F _bashdep bashdep" "$(bashdep::completion)"
+}
+
+function test_bashdep_completion_zsh_emits_script() {
+  local out; out=$(bashdep::completion zsh)
+  assert_contains "#compdef bashdep" "$out"
+  assert_contains "compadd" "$out"
+}
+
+function test_bashdep_completion_bash_is_valid_syntax() {
+  bashdep::completion bash | bash -n
+  assert_successful_code "$?"
+}
+
+function test_bashdep_completion_unsupported_shell_fails() {
+  local err; err=$(bashdep::completion fish 2>&1 >/dev/null)
+  assert_general_error
+  assert_contains "unsupported shell" "$err"
+}
+
+function test_bashdep_cli_completion_dispatches() {
+  assert_contains "complete -F _bashdep" "$(bashdep::main completion bash)"
+}
+
 function test_bashdep_cli_force_flag_bypasses_skip() {
   local url="https://example.com/tool"
   _seed_installed "$TEST_DIR" tool "$url"

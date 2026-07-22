@@ -27,7 +27,15 @@ no `source` needed:
 ./lib/bashdep clean --dry-run
 ./lib/bashdep doctor
 ./lib/bashdep self-update
+./lib/bashdep completion bash             # or zsh
 ./lib/bashdep --help
+```
+
+Enable shell completion by sourcing the generated script, e.g. in
+`~/.bashrc`:
+
+```bash
+source <(bashdep completion bash)
 ```
 
 Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters:

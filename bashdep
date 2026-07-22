@@ -638,6 +638,7 @@ Commands:
   clean                 Remove files not recorded in the lockfile
   doctor                Report lockfile/filesystem inconsistencies
   self-update [ref]     Update bashdep itself (default ref: main)
+  completion [shell]    Print a shell completion script (bash or zsh)
   version               Print the bashdep version
   help                  Show this help
 
@@ -652,6 +653,48 @@ Options:
   --version             Print the bashdep version
   -h, --help            Show this help
 EOF
+}
+
+# Print a shell completion script for the CLI. Usage: completion [bash|zsh]
+# (default bash). Install with: source <(bashdep completion bash)
+# Returns 1 for an unsupported shell.
+function bashdep::completion() {
+  local shell=${1:-bash}
+  local commands="install list uninstall clean doctor self-update completion version help"
+  local flags="--dir --dev-dir --file --force --dry-run --silent --verbose --version --help"
+  case $shell in
+    bash)
+      cat <<EOF
+_bashdep() {
+  local cur="\${COMP_WORDS[COMP_CWORD]}"
+  COMPREPLY=()
+  if [[ \$COMP_CWORD -eq 1 ]]; then
+    COMPREPLY=( \$(compgen -W "$commands" -- "\$cur") )
+  else
+    COMPREPLY=( \$(compgen -W "$flags" -- "\$cur") )
+  fi
+}
+complete -F _bashdep bashdep
+EOF
+      ;;
+    zsh)
+      cat <<EOF
+#compdef bashdep
+_bashdep() {
+  if (( CURRENT == 2 )); then
+    compadd -- $commands
+  else
+    compadd -- $flags
+  fi
+}
+_bashdep "\$@"
+EOF
+      ;;
+    *)
+      echo "Error: unsupported shell '$shell' (use bash or zsh)." >&2
+      return 1
+      ;;
+  esac
 }
 
 # CLI entry point, invoked when the script is executed rather than sourced.
@@ -719,6 +762,9 @@ function bashdep::main() {
       ;;
     self-update)
       bashdep::self_update ${args[@]+"${args[@]}"}
+      ;;
+    completion)
+      bashdep::completion ${args[@]+"${args[@]}"}
       ;;
     version)
       bashdep::version
