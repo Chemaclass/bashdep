@@ -283,8 +283,17 @@ function bashdep::install() {
   fi
 
   BASHDEP_LOCK_DEFER=false
+  # Each newly downloaded dependency contributed exactly one pending entry;
+  # skips and failures contribute none. Capture before flushing/clearing.
+  local installed=${#BASHDEP_LOCK_PENDING[@]}
   bashdep::_lock_flush || failures=$((failures + 1))
   BASHDEP_LOCK_PENDING=()
+
+  if ! bashdep::is_dry_run; then
+    local skipped=$(( ${#dependencies[@]} - installed - failures ))
+    [[ $skipped -lt 0 ]] && skipped=0
+    bashdep::_log "> installed $installed, skipped $skipped, failed $failures"
+  fi
 
   return $(( failures > 255 ? 255 : failures ))
 }
@@ -640,6 +649,7 @@ Options:
   --dry-run             Preview actions without touching disk
   --silent              Suppress informational output
   --verbose             Print extra context
+  --version             Print the bashdep version
   -h, --help            Show this help
 EOF
 }
@@ -657,6 +667,7 @@ function bashdep::main() {
   for arg in "$@"; do
     case $arg in
       -h|--help)   bashdep::usage; return 0 ;;
+      --version)   bashdep::version; return 0 ;;
       --force)     BASHDEP_FORCE=true ;;
       --dry-run)   BASHDEP_DRY_RUN=true ;;
       --silent)    BASHDEP_SILENT=true ;;

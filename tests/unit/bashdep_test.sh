@@ -456,6 +456,7 @@ function test_bashdep_setup_directory_creates_missing_dir() {
 function test_bashdep_install_custom_setup() {
   mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "echo mocked download_url"
+  BASHDEP_JOBS=1  # deterministic output for the snapshot
   bashdep::setup dir="vendor" dev-dir="src/dev" silent=true
 
   local DEPENDENCIES=(
@@ -470,6 +471,7 @@ function test_bashdep_install_custom_setup() {
 function test_bashdep_install_default_setup() {
   mock bashdep::setup_directory "return 0"
   mock bashdep::download_url "echo mocked download_url"
+  BASHDEP_JOBS=1  # deterministic output for the snapshot
 
   local DEPENDENCIES=(
     "https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit"
@@ -846,6 +848,34 @@ function test_bashdep_install_jobs_one_is_sequential() {
   local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
   assert_contains "aaa" "$lock"
   assert_contains "bbb" "$lock"
+}
+
+function test_bashdep_install_prints_summary() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  local out; out=$(bashdep::install \
+    "https://example.com/aaa" "https://example.com/bbb")
+  assert_contains "installed 2" "$out"
+}
+
+function test_bashdep_install_summary_counts_skipped() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" existing https://example.com/existing
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  local out; out=$(bashdep::install \
+    "https://example.com/existing" "https://example.com/new")
+  assert_contains "installed 1, skipped 1, failed 0" "$out"
+}
+
+function test_bashdep_install_summary_suppressed_when_silent() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_SILENT=true
+  local out; out=$(bashdep::install "https://example.com/aaa")
+  assert_not_contains "installed" "$out"
 }
 
 function test_bashdep_install_from_defaults_to_bashdep_file() {
@@ -1475,6 +1505,10 @@ function test_bashdep_sourcing_does_not_invoke_cli() {
 
 function test_bashdep_cli_short_help_flag_prints_usage() {
   assert_contains "Usage:" "$(bashdep::main -h)"
+}
+
+function test_bashdep_cli_version_flag_prints_version() {
+  assert_equals "$BASHDEP_VERSION" "$(bashdep::main --version)"
 }
 
 function test_bashdep_cli_force_flag_bypasses_skip() {
