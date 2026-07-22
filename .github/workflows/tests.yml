@@ -34,6 +34,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: "Cache bashunit"
+        uses: actions/cache@v4
+        with:
+          path: lib
+          key: bashunit-${{ runner.os }}-${{ hashFiles('install-dependencies.sh') }}
+
       - name: "Install bashunit"
         run: bash install-dependencies.sh
 
