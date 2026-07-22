@@ -11,6 +11,8 @@ function set_up() {
   BASHDEP_DRY_RUN=false
   BASHDEP_VERBOSE=false
   BASHDEP_DOWNLOADER=""
+  BASHDEP_LOCK_DEFER=false
+  BASHDEP_LOCK_PENDING=()
   TEST_DIR=$(mktemp -d)
   BASHDEP_BIN="$(cd "$(current_dir)/../.." && pwd)/bashdep"
 }
@@ -765,6 +767,50 @@ function test_bashdep_install_lockfile_contains_all_deps() {
   lock=$(cat "$TEST_DIR/.bashdep.lock")
   assert_contains "aaa" "$lock"
   assert_contains "bbb" "$lock"
+}
+
+function test_bashdep_install_batch_keeps_lockfile_sorted() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::install \
+    "https://example.com/bbb" \
+    "https://example.com/aaa" >/dev/null
+  local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_equals "aaa	https://example.com/aaa
+bbb	https://example.com/bbb" "$lock"
+}
+
+function test_bashdep_install_batch_last_write_wins_for_same_name() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  bashdep::install \
+    "https://a.example.com/tool" \
+    "https://b.example.com/tool" >/dev/null
+  local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_equals "1" "$(printf '%s\n' "$lock" | grep -c 'tool')"
+  assert_contains "b.example.com/tool" "$lock"
+}
+
+function test_bashdep_install_batch_preserves_existing_entry() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" existing https://example.com/existing
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  bashdep::install "https://example.com/new" >/dev/null
+  local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_contains "existing" "$lock"
+  assert_contains "new" "$lock"
+}
+
+function test_bashdep_install_batch_noop_when_all_skipped() {
+  BASHDEP_DIR="$TEST_DIR"
+  _seed_installed "$TEST_DIR" tool https://example.com/tool
+  mock curl "echo SHOULD_NOT_RUN"
+  local out; out=$(bashdep::install "https://example.com/tool")
+  assert_not_contains "SHOULD_NOT_RUN" "$out"
+  assert_contains "tool" "$(cat "$TEST_DIR/.bashdep.lock")"
 }
 
 function test_bashdep_install_from_defaults_to_bashdep_file() {
