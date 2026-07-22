@@ -10,6 +10,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   time by default). Set `BASHDEP_JOBS` to change the concurrency;
   `BASHDEP_JOBS=1` restores sequential downloads. Dry-run stays
   sequential for stable preview output.
+- `install` prints a final `installed X, skipped Y, failed Z` summary
+  (suppressed by `silent`).
+- CLI `--version` flag prints the version (alongside the existing
+  `version` command).
 
 ### Changed
 

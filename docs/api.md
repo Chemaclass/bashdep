@@ -35,9 +35,10 @@ Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters:
 `--verbose`. `install` also accepts `--file=FILE` to point at a
 dependency file other than `.bashdep`.
 
-Exit codes match the underlying function's return value (e.g. `doctor`
-exits with the issue count), so the CLI drops into CI pipelines as-is.
-Sourcing the script never triggers the CLI.
+`--version` prints the version and `-h`/`--help` prints usage. Exit codes
+match the underlying function's return value (e.g. `doctor` exits with
+the issue count), so the CLI drops into CI pipelines as-is. Sourcing the
+script never triggers the CLI.
 
 ## `bashdep::install`
 
