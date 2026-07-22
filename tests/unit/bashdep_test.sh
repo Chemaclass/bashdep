@@ -1268,32 +1268,31 @@ function test_bashdep_cli_version_prints_version() {
   assert_equals "$BASHDEP_VERSION" "$output"
 }
 
+# Pure-dispatch CLI checks call bashdep::main in-process (bashdep is sourced
+# in set_up) — no subprocess needed. The executable entrypoint itself is
+# still smoke-tested by the version/e2e/sourcing-guard tests below.
 function test_bashdep_cli_help_prints_usage() {
-  local output
-  output=$(bash "$BASHDEP_BIN" --help)
-  assert_contains "Usage:" "$output"
+  assert_contains "Usage:" "$(bashdep::main --help)"
 }
 
 function test_bashdep_cli_help_command_prints_usage() {
-  local output
-  output=$(bash "$BASHDEP_BIN" help)
-  assert_contains "Usage:" "$output"
+  assert_contains "Usage:" "$(bashdep::main help)"
 }
 
 function test_bashdep_cli_no_args_prints_usage_and_fails() {
-  bash "$BASHDEP_BIN" >/dev/null 2>&1
+  bashdep::main >/dev/null 2>&1
   assert_general_error
 }
 
 function test_bashdep_cli_unknown_command_fails() {
   local stderr
-  stderr=$(bash "$BASHDEP_BIN" bogus 2>&1 >/dev/null)
+  stderr=$(bashdep::main bogus 2>&1 >/dev/null)
   assert_contains "Unknown command" "$stderr"
 }
 
 function test_bashdep_cli_unknown_option_fails() {
   local stderr
-  stderr=$(bash "$BASHDEP_BIN" install --bogus 2>&1 >/dev/null)
+  stderr=$(bashdep::main install --bogus 2>&1 >/dev/null)
   assert_contains "Unknown option" "$stderr"
 }
 
@@ -1377,9 +1376,7 @@ function test_bashdep_sourcing_does_not_invoke_cli() {
 }
 
 function test_bashdep_cli_short_help_flag_prints_usage() {
-  local output
-  output=$(bash "$BASHDEP_BIN" -h)
-  assert_contains "Usage:" "$output"
+  assert_contains "Usage:" "$(bashdep::main -h)"
 }
 
 function test_bashdep_cli_force_flag_bypasses_skip() {
