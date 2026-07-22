@@ -1,0 +1,25 @@
+# Optional: run the same gates as CI on every commit via the pre-commit
+# framework (https://pre-commit.com). Install with:
+#   pip install pre-commit && pre-commit install
+# These local hooks reuse the Makefile targets, so there are no external
+# hook repositories to fetch.
+repos:
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: ShellCheck
+        entry: make sa
+        language: system
+        pass_filenames: false
+        files: '(\.sh$|^bashdep$|^release\.sh$|^bin/pre-commit$)'
+      - id: editorconfig
+        name: editorconfig-checker
+        entry: make lint
+        language: system
+        pass_filenames: false
+      - id: tests
+        name: bashunit tests
+        entry: make test
+        language: system
+        pass_filenames: false
+        files: '(\.sh$|^bashdep$|^release\.sh$|^tests/)'
