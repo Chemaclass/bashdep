@@ -260,22 +260,82 @@ function bashdep::install() {
   local dependencies=("$@")
   local failures=0
   local dep
+  local jobs="${BASHDEP_JOBS:-4}"
 
   # Defer lockfile writes: each download records its entry in
   # BASHDEP_LOCK_PENDING and we rewrite each destination lockfile once at
   # the end, instead of re-sorting the whole file on every dependency.
   BASHDEP_LOCK_DEFER=true
   BASHDEP_LOCK_PENDING=()
-  for dep in "${dependencies[@]}"; do
-    bashdep::_classify_dep "$dep"
-    bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
-    bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
-  done
+
+  # Download concurrently when more than one dependency is requested and
+  # parallelism is enabled. Dry-run stays sequential so its preview output
+  # keeps a stable order.
+  if [[ "$jobs" -gt 1 && ${#dependencies[@]} -gt 1 ]] && ! bashdep::is_dry_run; then
+    bashdep::_install_parallel "$jobs" "${dependencies[@]}"
+    failures=$?
+  else
+    for dep in "${dependencies[@]}"; do
+      bashdep::_classify_dep "$dep"
+      bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
+      bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
+    done
+  fi
+
   BASHDEP_LOCK_DEFER=false
   bashdep::_lock_flush || failures=$((failures + 1))
   BASHDEP_LOCK_PENDING=()
 
   return $(( failures > 255 ? 255 : failures ))
+}
+
+# Internal: download all dependencies concurrently, at most $1 at a time.
+# Each dependency runs in a background subshell that writes its lockfile
+# entry to a per-job result file (subshell array mutations don't reach the
+# parent); the parent then aggregates them into BASHDEP_LOCK_PENDING in
+# dependency order. Returns the number of failed downloads.
+function bashdep::_install_parallel() {
+  local jobs=$1; shift
+  local deps=("$@")
+  local failures=0 idx=0 running=0 p rf line
+  local results_dir; results_dir=$(mktemp -d) || return 1
+  local pids=()
+
+  local dep result_file
+  for dep in "${deps[@]}"; do
+    printf -v result_file '%s/%05d' "$results_dir" "$idx"
+    bashdep::_install_one_async "$dep" "$result_file" &
+    pids+=("$!")
+    idx=$((idx + 1)); running=$((running + 1))
+    if [[ $running -ge $jobs ]]; then
+      for p in "${pids[@]}"; do wait "$p" || failures=$((failures + 1)); done
+      pids=(); running=0
+    fi
+  done
+  for p in ${pids[@]+"${pids[@]}"}; do wait "$p" || failures=$((failures + 1)); done
+
+  # Aggregate in filename (= dependency) order so last-write-wins is stable.
+  for rf in "$results_dir"/*; do
+    [[ -s "$rf" ]] || continue
+    while IFS= read -r line; do BASHDEP_LOCK_PENDING+=("$line"); done < "$rf"
+  done
+  rm -rf "$results_dir"
+  # Cap before returning: `return` is 8-bit, so an uncapped count > 255
+  # would wrap (e.g. 300 -> 44). install re-caps regardless.
+  return $(( failures > 255 ? 255 : failures ))
+}
+
+# Internal: download one dependency (in a background subshell) and append
+# its deferred lockfile entry to $2. Returns non-zero on failure.
+function bashdep::_install_one_async() {
+  local dep=$1 result_file=$2 entry
+  bashdep::_classify_dep "$dep"
+  bashdep::setup_directory "$BASHDEP_DEP_DIR" || return 1
+  BASHDEP_LOCK_PENDING=()
+  bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || return 1
+  for entry in ${BASHDEP_LOCK_PENDING[@]+"${BASHDEP_LOCK_PENDING[@]}"}; do
+    printf '%s\n' "$entry" >> "$result_file"
+  done
 }
 
 # Internal: classify a dependency string into URL and target directory.

@@ -813,6 +813,41 @@ function test_bashdep_install_batch_noop_when_all_skipped() {
   assert_contains "tool" "$(cat "$TEST_DIR/.bashdep.lock")"
 }
 
+function test_bashdep_install_parallel_installs_all_deps() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_JOBS=4
+  bashdep::install \
+    "https://example.com/aaa" \
+    "https://example.com/bbb" \
+    "https://example.com/ccc" >/dev/null
+  assert_file_exists "$TEST_DIR/aaa"
+  assert_file_exists "$TEST_DIR/ccc"
+  local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_contains "aaa" "$lock"
+  assert_contains "ccc" "$lock"
+}
+
+function test_bashdep_install_parallel_counts_failures() {
+  mock bashdep::setup_directory "return 0"
+  mock bashdep::download_url "return 1"
+  BASHDEP_JOBS=4
+  bashdep::install "https://example.com/a" "https://example.com/b" "https://example.com/c"
+  assert_equals 3 "$?"
+}
+
+function test_bashdep_install_jobs_one_is_sequential() {
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4"'
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_JOBS=1
+  bashdep::install "https://example.com/aaa" "https://example.com/bbb" >/dev/null
+  local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
+  assert_contains "aaa" "$lock"
+  assert_contains "bbb" "$lock"
+}
+
 function test_bashdep_install_from_defaults_to_bashdep_file() {
   printf 'https://example.com/default-tool\n' > "$TEST_DIR/.bashdep"
   BASHDEP_DRY_RUN=true

@@ -55,8 +55,11 @@ both by default.
 
 ## Error handling
 
-- `bashdep::install` continues past failed downloads and returns the
-  failure count (capped at 255).
+- `bashdep::install` downloads in parallel (up to `BASHDEP_JOBS`, default
+  `4`; set `BASHDEP_JOBS=1` for sequential). It continues past failed
+  downloads and returns the failure count (capped at 255). Lockfile
+  writes are batched into a single rewrite per directory after all
+  downloads finish, so concurrency never corrupts the lockfile.
 - `bashdep::install_from` returns `1` if the file (default: `.bashdep`)
   is missing or unreadable.
 - `bashdep::setup` returns `1` on unknown params or non-boolean values
