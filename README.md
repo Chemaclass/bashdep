@@ -59,6 +59,8 @@ Everyday commands:
 ./lib/bashdep --help           # all commands and flags
 ```
 
+Enable tab completion: `source <(./lib/bashdep completion bash)` (or `zsh`).
+
 ### Or source it from a script
 
 Prefer a programmatic setup (custom dirs, inline arrays)? Source
