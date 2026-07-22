@@ -263,6 +263,22 @@ function bashdep::list() {
   done
 }
 
+# Internal: resolve the parallel job count from BASHDEP_JOBS. The value
+# feeds an arithmetic `[[ -gt ]]` test, so only a plain non-negative integer
+# is honored; any other value — a non-numeric string, or an
+# arithmetic-injection payload such as 'a[$(cmd)]' — is rejected with a
+# warning and the default of 4 is used. Prints the resolved integer.
+function bashdep::_resolve_jobs() {
+  local raw="${BASHDEP_JOBS:-4}"
+  case "$raw" in
+    ''|*[!0-9]*)
+      echo "Error: BASHDEP_JOBS must be a non-negative integer, got '$raw'; using 4." >&2
+      raw=4
+      ;;
+  esac
+  printf '%s' "$raw"
+}
+
 # Download and install all dependencies.
 # Returns 0 if all succeed, otherwise the number of failures (capped at 255
 # since bash return codes are 8-bit).
@@ -270,7 +286,8 @@ function bashdep::install() {
   local dependencies=("$@")
   local failures=0
   local dep
-  local jobs="${BASHDEP_JOBS:-4}"
+  local jobs
+  jobs=$(bashdep::_resolve_jobs)
 
   # Defer lockfile writes: each download records its entry in
   # BASHDEP_LOCK_PENDING and we rewrite each destination lockfile once at

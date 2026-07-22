@@ -72,8 +72,11 @@ nothing is verified (the default).
 ## Error handling
 
 - `bashdep::install` downloads in parallel (up to `BASHDEP_JOBS`, default
-  `4`; set `BASHDEP_JOBS=1` for sequential). It continues past failed
-  downloads and returns the failure count (capped at 255). Lockfile
+  `4`; set `BASHDEP_JOBS=1` for sequential). `BASHDEP_JOBS` must be a
+  non-negative integer; a non-numeric or otherwise invalid value is
+  rejected with a warning and the default of `4` is used. It continues
+  past failed downloads and returns the failure count (capped at 255).
+  Lockfile
   writes are batched into a single rewrite per directory after all
   downloads finish, so concurrency never corrupts the lockfile.
 - `bashdep::install_from` returns `1` if the file (default: `.bashdep`)
