@@ -25,16 +25,34 @@ docs/                       # API + behavior + releasing reference
 Makefile                    # test / sa / lint / deps / release / pre_commit/install
 ```
 
-The codebase is intentionally small and zero-runtime: only `curl`,
-`awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run on
-bash 3.2+ (default macOS) and bash 4+ (Linux CI).
+The codebase is intentionally small and zero-runtime: only `curl` (or
+`wget`), `awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run
+on bash 3.2+ (default macOS) and bash 4+ (Linux CI).
+
+## Toolchain
+
+Install these to run the full gate locally:
+
+| Tool | Purpose | Install |
+| --- | --- | --- |
+| [bashunit](https://bashunit.typeddevs.com/) `0.17.0` | Test runner | `make deps` |
+| [ShellCheck](https://www.shellcheck.net/) | Static analysis (`make sa`) | `brew install shellcheck` / `apt install shellcheck` |
+| [editorconfig-checker](https://editorconfig-checker.github.io/) | Whitespace/indent lint (`make lint`) | `brew install editorconfig-checker` |
+
+`make lint` finds the linter under either the `ec` or
+`editorconfig-checker` binary name.
 
 ## Workflow for pull requests
 
 1. Fork/clone, branch from `main`.
 2. Implement the change and add tests for it.
-3. Run `make pre_commit/run` (test + ShellCheck + editorconfig).
+3. Run `make check` (test + ShellCheck + editorconfig).
 4. Open the PR with a short summary and a test plan.
+
+Prefer commit-time enforcement? Either `make pre_commit/install` (a
+plain git hook) or, with the [pre-commit](https://pre-commit.com)
+framework, `pip install pre-commit && pre-commit install` — the
+committed `.pre-commit-config.yaml` runs the same Makefile gates.
 
 Set your git `user.name` / `user.email` so commit history stays clean:
 see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
