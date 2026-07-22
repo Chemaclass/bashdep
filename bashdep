@@ -11,6 +11,8 @@ BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
 BASHDEP_VERBOSE=false
 BASHDEP_DOWNLOADER=""
+BASHDEP_LOCK_DEFER=false
+BASHDEP_LOCK_PENDING=()
 BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
 
 # Print bashdep version.
@@ -259,11 +261,19 @@ function bashdep::install() {
   local failures=0
   local dep
 
+  # Defer lockfile writes: each download records its entry in
+  # BASHDEP_LOCK_PENDING and we rewrite each destination lockfile once at
+  # the end, instead of re-sorting the whole file on every dependency.
+  BASHDEP_LOCK_DEFER=true
+  BASHDEP_LOCK_PENDING=()
   for dep in "${dependencies[@]}"; do
     bashdep::_classify_dep "$dep"
     bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
     bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
   done
+  BASHDEP_LOCK_DEFER=false
+  bashdep::_lock_flush || failures=$((failures + 1))
+  BASHDEP_LOCK_PENDING=()
 
   return $(( failures > 255 ? 255 : failures ))
 }
@@ -342,7 +352,11 @@ function bashdep::download_url() {
 
   bashdep::_log "> $file_name installed successfully in '$destination_dir'"
   chmod +x "$destination_file"
-  bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
+  if [[ "$BASHDEP_LOCK_DEFER" == true ]]; then
+    BASHDEP_LOCK_PENDING+=("$lock_file"$'\t'"$file_name"$'\t'"$url")
+  else
+    bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
+  fi
   bashdep::_vlog "  lockfile: $lock_file"
 }
 
@@ -507,6 +521,36 @@ function bashdep::_lock_set() {
     printf '%s\t%s\n' "$file_name" "$url"
   } | LC_ALL=C sort > "$tmp"
   bashdep::_lock_commit "$tmp" "$lock_file"
+}
+
+# Internal: write every pending lockfile entry collected during a deferred
+# install, one rewrite per destination lockfile. No-op when nothing is
+# pending. Returns 1 if any lockfile cannot be written.
+function bashdep::_lock_flush() {
+  local entry lock_file seen=""
+  for entry in ${BASHDEP_LOCK_PENDING[@]+"${BASHDEP_LOCK_PENDING[@]}"}; do
+    lock_file="${entry%%$'\t'*}"
+    case ":$seen:" in *":$lock_file:"*) continue ;; esac
+    seen="$seen:$lock_file"
+    bashdep::_lock_flush_one "$lock_file" || return 1
+  done
+}
+
+# Internal: rewrite a single lockfile from its existing entries plus all
+# pending entries targeting it. A single awk keeps the last value per
+# filename (pending entries stream after the existing file, so they win),
+# then one sort orders the result. Returns 1 on write failure.
+function bashdep::_lock_flush_one() {
+  local target=$1 entry tmp
+  tmp=$(bashdep::_lock_mktemp "$target") || return 1
+  {
+    [[ -f "$target" ]] && cat "$target"
+    for entry in ${BASHDEP_LOCK_PENDING[@]+"${BASHDEP_LOCK_PENDING[@]}"}; do
+      [[ "${entry%%$'\t'*}" == "$target" ]] && printf '%s\n' "${entry#*$'\t'}"
+    done
+  } | awk -F '\t' 'NF >= 2 { keep[$1] = $0 } END { for (k in keep) print keep[k] }' \
+    | LC_ALL=C sort > "$tmp"
+  bashdep::_lock_commit "$tmp" "$target"
 }
 
 # Print CLI usage.
