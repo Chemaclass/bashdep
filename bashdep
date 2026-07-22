@@ -10,6 +10,7 @@ BASHDEP_SILENT=false
 BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
 BASHDEP_VERBOSE=false
+BASHDEP_DOWNLOADER=""
 BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
 
 # Print bashdep version.
@@ -165,15 +166,16 @@ function bashdep::uninstall() {
 function bashdep::clean() {
   local removed=0 failures=0
   local self_name="${BASH_SOURCE[0]##*/}"
-  local dir lock_file file_path seen=""
+  local dir lock_file lock_names file_path seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
     [[ -z "$dir" || ! -d "$dir" ]] && continue
     case ":$seen:" in *":$dir:"*) continue ;; esac
     seen="$seen:$dir"
     lock_file="$dir/$BASHDEP_LOCK_FILE"
     [[ -f "$lock_file" ]] || continue
+    lock_names=$(bashdep::_lock_names "$lock_file")
     for file_path in "$dir"/*; do
-      bashdep::_is_orphan "$file_path" "$self_name" "$lock_file" || continue
+      bashdep::_is_orphan "$file_path" "$self_name" "$lock_names" || continue
       if bashdep::is_dry_run; then
         bashdep::_log "[dry-run] Would remove orphan '$file_path'"
         removed=$((removed + 1))
@@ -198,7 +200,7 @@ function bashdep::clean() {
 function bashdep::doctor() {
   local issues=0
   local self_name="${BASH_SOURCE[0]##*/}"
-  local dir lock_file file_path entry_name entry_url seen=""
+  local dir lock_file lock_names file_path entry_name entry_url seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
     [[ -z "$dir" || ! -d "$dir" ]] && continue
     case ":$seen:" in *":$dir:"*) continue ;; esac
@@ -216,8 +218,9 @@ function bashdep::doctor() {
         issues=$((issues + 1))
       fi
     done < "$lock_file"
+    lock_names=$(bashdep::_lock_names "$lock_file")
     for file_path in "$dir"/*; do
-      if bashdep::_is_orphan "$file_path" "$self_name" "$lock_file"; then
+      if bashdep::_is_orphan "$file_path" "$self_name" "$lock_names"; then
         bashdep::_log "  orphan file '$file_path' (no lockfile entry)"
         issues=$((issues + 1))
       fi
@@ -349,17 +352,25 @@ function bashdep::_has_wget() { command -v wget >/dev/null 2>&1; }
 
 # Internal: download $1 (url) into $2 (output path). Prefers curl and falls
 # back to wget when curl is not installed. Returns the downloader's own exit
-# code, or 127 when neither curl nor wget is available.
+# code, or 127 when neither curl nor wget is available. The choice is
+# resolved once per run (cached in BASHDEP_DOWNLOADER) so a batch install
+# does not re-probe, and stays consistent across all its downloads.
 function bashdep::_download() {
   local url=$1 output=$2
-  if bashdep::_has_curl; then
-    curl -fsSL "$url" -o "$output"
-  elif bashdep::_has_wget; then
-    wget -qO "$output" "$url"
-  else
-    echo "Error: neither curl nor wget is installed." >&2
-    return 127
+  if [[ -z "$BASHDEP_DOWNLOADER" ]]; then
+    if bashdep::_has_curl; then
+      BASHDEP_DOWNLOADER=curl
+    elif bashdep::_has_wget; then
+      BASHDEP_DOWNLOADER=wget
+    else
+      BASHDEP_DOWNLOADER=none
+    fi
   fi
+  case $BASHDEP_DOWNLOADER in
+    curl) curl -fsSL "$url" -o "$output" ;;
+    wget) wget -qO "$output" "$url" ;;
+    *) echo "Error: neither curl nor wget is installed." >&2; return 127 ;;
+  esac
 }
 
 function bashdep::is_silent() {
@@ -420,24 +431,38 @@ function bashdep::_lock_get() {
   awk -F '\t' -v name="$file_name" '$1 == name { print $2; exit }' "$lock_file"
 }
 
+# Internal: print every filename recorded in the lockfile, one per line
+# (empty when the lockfile is absent). Lets clean/doctor read the lockfile
+# once per directory instead of forking awk for every file on disk.
+function bashdep::_lock_names() {
+  local lock_file=$1
+  [[ -f "$lock_file" ]] || return 0
+  awk -F '\t' 'NF { print $1 }' "$lock_file"
+}
+
 # Internal: return 0 when $file_path is an orphan — a regular file that is
-# neither the lockfile nor the bashdep script itself ($2) and has no entry
-# in $lock_file ($3). Shared by clean and doctor.
+# neither the lockfile nor the bashdep script itself ($2) and whose name is
+# absent from the newline-delimited $lock_names list ($3, from _lock_names).
+# Shared by clean and doctor. The quoted case pattern matches the name
+# literally, so glob characters in filenames are safe.
 function bashdep::_is_orphan() {
-  local file_path=$1 self_name=$2 lock_file=$3
+  local file_path=$1 self_name=$2 lock_names=$3
   [[ -f "$file_path" ]] || return 1
   local file_name="${file_path##*/}"
   [[ "$file_name" == "$BASHDEP_LOCK_FILE" ]] && return 1
   [[ "$file_name" == "$self_name" ]] && return 1
-  [[ -z "$(bashdep::_lock_get "$lock_file" "$file_name")" ]]
+  case $'\n'"$lock_names"$'\n' in
+    *$'\n'"$file_name"$'\n'*) return 1 ;;
+  esac
+  return 0
 }
 
 # Internal: create a temp file alongside the lockfile for an atomic
 # rewrite. Prints the temp path on stdout. Returns 1 if it cannot be
 # created.
 function bashdep::_lock_mktemp() {
-  local lock_file=$1 lock_dir
-  lock_dir=$(dirname "$lock_file")
+  local lock_file=$1
+  local lock_dir="${lock_file%/*}"
   mktemp "$lock_dir/$BASHDEP_LOCK_FILE.XXXXXX" || {
     echo "Error: Could not create temp file for lockfile update." >&2
     return 1

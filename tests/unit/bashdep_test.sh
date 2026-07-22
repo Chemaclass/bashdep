@@ -10,6 +10,7 @@ function set_up() {
   BASHDEP_SILENT=false
   BASHDEP_DRY_RUN=false
   BASHDEP_VERBOSE=false
+  BASHDEP_DOWNLOADER=""
   TEST_DIR=$(mktemp -d)
   BASHDEP_BIN="$(cd "$(current_dir)/../.." && pwd)/bashdep"
 }
@@ -391,27 +392,43 @@ function test_bashdep_should_skip_download_no_when_lockfile_missing() {
 function test_bashdep_is_orphan_true_when_file_has_no_lock_entry() {
   _seed_lock "$TEST_DIR" tracked https://example.com/tracked
   touch "$TEST_DIR/orphan"
-  bashdep::_is_orphan "$TEST_DIR/orphan" bashdep "$TEST_DIR/.bashdep.lock"
+  local names; names=$(bashdep::_lock_names "$TEST_DIR/.bashdep.lock")
+  bashdep::_is_orphan "$TEST_DIR/orphan" bashdep "$names"
   assert_successful_code "$?"
 }
 
 function test_bashdep_is_orphan_false_when_file_has_lock_entry() {
   _seed_installed "$TEST_DIR" tracked https://example.com/tracked
-  bashdep::_is_orphan "$TEST_DIR/tracked" bashdep "$TEST_DIR/.bashdep.lock"
+  local names; names=$(bashdep::_lock_names "$TEST_DIR/.bashdep.lock")
+  bashdep::_is_orphan "$TEST_DIR/tracked" bashdep "$names"
   assert_general_error
 }
 
 function test_bashdep_is_orphan_false_for_lockfile_itself() {
   _seed_installed "$TEST_DIR" tracked https://example.com/tracked
-  bashdep::_is_orphan "$TEST_DIR/.bashdep.lock" bashdep "$TEST_DIR/.bashdep.lock"
+  local names; names=$(bashdep::_lock_names "$TEST_DIR/.bashdep.lock")
+  bashdep::_is_orphan "$TEST_DIR/.bashdep.lock" bashdep "$names"
   assert_general_error
 }
 
 function test_bashdep_is_orphan_false_for_self_name() {
   _seed_lock "$TEST_DIR" tracked https://example.com/tracked
   touch "$TEST_DIR/bashdep"
-  bashdep::_is_orphan "$TEST_DIR/bashdep" bashdep "$TEST_DIR/.bashdep.lock"
+  local names; names=$(bashdep::_lock_names "$TEST_DIR/.bashdep.lock")
+  bashdep::_is_orphan "$TEST_DIR/bashdep" bashdep "$names"
   assert_general_error
+}
+
+function test_bashdep_lock_names_lists_recorded_filenames() {
+  printf 'aaa\thttps://example.com/aaa\nbbb\thttps://example.com/bbb\n' \
+    > "$TEST_DIR/.bashdep.lock"
+  local names; names=$(bashdep::_lock_names "$TEST_DIR/.bashdep.lock")
+  assert_contains "aaa" "$names"
+  assert_contains "bbb" "$names"
+}
+
+function test_bashdep_lock_names_empty_when_lockfile_missing() {
+  assert_empty "$(bashdep::_lock_names "$TEST_DIR/nope.lock")"
 }
 
 # setup_directory tests.
