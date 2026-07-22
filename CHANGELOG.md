@@ -6,6 +6,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- `bashdep::install` downloads dependencies in parallel (up to 4 at a
+  time by default). Set `BASHDEP_JOBS` to change the concurrency;
+  `BASHDEP_JOBS=1` restores sequential downloads. Dry-run stays
+  sequential for stable preview output.
+
 ### Changed
 
 ### Fixed
