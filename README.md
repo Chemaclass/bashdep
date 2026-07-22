@@ -13,21 +13,22 @@ per-directory `.bashdep.lock`. No registry, no runtime — just `curl`
 
 ## Quick start
 
-**1. Vendor bashdep into your repo:**
+**1. Vendor bashdep into your repo** (pinned release, verified against
+its published `checksum` — recommended for reproducibility):
 
 ```bash
 mkdir -p lib
-curl -fsSLo lib/bashdep https://raw.githubusercontent.com/Chemaclass/bashdep/main/bashdep
-chmod +x lib/bashdep
-```
-
-Prefer a pinned, verifiable version? Grab a tagged release and check it
-against the published `checksum`:
-
-```bash
 curl -fsSLo lib/bashdep https://github.com/Chemaclass/bashdep/releases/latest/download/bashdep
 curl -fsSLo checksum     https://github.com/Chemaclass/bashdep/releases/latest/download/checksum
 ( cd lib && shasum -a 256 -c ../checksum ) && chmod +x lib/bashdep
+```
+
+Prefer the bleeding edge? Grab the `main` branch instead (unversioned,
+no checksum):
+
+```bash
+curl -fsSLo lib/bashdep https://raw.githubusercontent.com/Chemaclass/bashdep/main/bashdep
+chmod +x lib/bashdep
 ```
 
 **2. Declare your dependencies in a `.bashdep` file** (one URL per
@@ -76,6 +77,20 @@ bashdep::install_from   # reads ./.bashdep
 
 See the [API reference](docs/api.md) for `bashdep::setup`,
 `bashdep::install`, and friends.
+
+### Exit codes for CI
+
+Every command returns a meaningful, capped-at-255 count, so it drops into
+CI as-is:
+
+```bash
+./lib/bashdep doctor || echo "lockfile drift: $? issue(s)"   # 0 = clean
+./lib/bashdep install || echo "$? download(s) failed"
+```
+
+`install` returns the failure count, `doctor` the issue count, `clean`
+the number of orphans it could not remove, and `uninstall` the count of
+names not found. See [Behavior](docs/behavior.md#error-handling).
 
 ## Why bashdep?
 
