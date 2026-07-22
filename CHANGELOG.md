@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.6.0] - 2026-07-22
+
+### Added
+
 - Downloads fall back to `wget` when `curl` is not installed (curl is
   still preferred). Fails with a clear error only when neither is
   available. Closes #1.
@@ -120,7 +128,8 @@ download URLs return 404. Git tags are preserved for history.
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/Chemaclass/bashdep/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Chemaclass/bashdep/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.2
 [0.4.1]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.1
