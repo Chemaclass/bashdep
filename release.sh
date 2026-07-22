@@ -49,6 +49,7 @@ BUMP_LEVEL="minor"
 DRY_RUN=false
 FORCE=false
 WITH_GH_RELEASE=true
+TRUST_CI=false
 REMOTE="origin"
 
 # --- Output helpers ----------------------------------------------------------
@@ -121,6 +122,8 @@ Options:
   --dry-run     Preview every step without mutating files, git, or network.
   --force       Skip interactive confirmation.
   --no-gh       Skip the GitHub release step.
+  --trust-ci    Skip the local test/sa/lint gate when HEAD already has a
+                green CI run (requires gh). Falls back to running it.
   --remote=NAME Push to a remote other than origin.
   -h, --help    Show this help.
 
@@ -143,6 +146,7 @@ parse_args() {
       --dry-run) DRY_RUN=true ;;
       --force)   FORCE=true ;;
       --no-gh)   WITH_GH_RELEASE=false ;;
+      --trust-ci) TRUST_CI=true ;;
       --remote=*) REMOTE="${1#*=}" ;;
       -*)        err "Unknown flag: $1"; usage >&2; exit 1 ;;
       *)
@@ -215,7 +219,7 @@ preflight() {
       exit 1
     fi
   fi
-  if $WITH_GH_RELEASE; then require_cmd gh; fi
+  if $WITH_GH_RELEASE || $TRUST_CI; then require_cmd gh; fi
   ok "required commands present"
 
   local branch
@@ -354,10 +358,34 @@ roll_changelog() {
   done_ok "CHANGELOG rolled (Unreleased → $VERSION on $today)"
 }
 
+# Print the combined check-runs conclusion for the current HEAD commit:
+# "success", "failure", "pending", or "none" (no checks / lookup failed).
+ci_head_conclusion() {
+  local sha
+  sha=$(git rev-parse HEAD)
+  gh api "repos/$REPO_PATH/commits/$sha/check-runs" --jq '
+    def ok: .conclusion == "success" or .conclusion == "skipped" or .conclusion == "neutral";
+    if (.check_runs | length) == 0 then "none"
+    elif any(.check_runs[]; .status != "completed") then "pending"
+    elif all(.check_runs[]; ok) then "success"
+    else "failure" end' 2>/dev/null || echo "none"
+}
+
+# Return 0 when --trust-ci was passed and HEAD already has a green CI run,
+# so the local gates can be safely skipped.
+should_skip_gates() {
+  $TRUST_CI || return 1
+  [[ "$(ci_head_conclusion)" == "success" ]]
+}
+
 run_gates() {
   log "Run release gates (test + sa + lint)"
   if $DRY_RUN; then
-    plan "make test sa lint"
+    plan "make test sa lint (unless --trust-ci and HEAD is green)"
+    return
+  fi
+  if should_skip_gates; then
+    ok "trusting green CI on HEAD — skipping local gates"
     return
   fi
   make test >/dev/null

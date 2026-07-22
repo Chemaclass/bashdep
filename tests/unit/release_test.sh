@@ -47,6 +47,41 @@ function test_release_bump_version_minor_resets_patch() {
   assert_equals "1.3.0" "$(bump_version_string 1.2.9 minor)"
 }
 
+# --- --trust-ci gate-skip decision -------------------------------------------
+
+function test_release_should_skip_gates_false_without_trust_ci() {
+  TRUST_CI=false
+  should_skip_gates
+  assert_general_error
+}
+
+function test_release_should_skip_gates_true_when_ci_green() {
+  TRUST_CI=true
+  mock ci_head_conclusion "echo success"
+  should_skip_gates
+  assert_successful_code "$?"
+}
+
+function test_release_should_skip_gates_false_when_ci_failed() {
+  TRUST_CI=true
+  mock ci_head_conclusion "echo failure"
+  should_skip_gates
+  assert_general_error
+}
+
+function test_release_should_skip_gates_false_when_ci_pending() {
+  TRUST_CI=true
+  mock ci_head_conclusion "echo pending"
+  should_skip_gates
+  assert_general_error
+}
+
+function test_release_ci_head_conclusion_returns_gh_output() {
+  mock git "echo deadsha"
+  mock gh "echo success"
+  assert_equals "success" "$(ci_head_conclusion)"
+}
+
 # --- sha256_of ---------------------------------------------------------------
 
 function test_release_sha256_of_records_basename_not_path() {
