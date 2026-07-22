@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+
+- Downloads fall back to `wget` when `curl` is not installed (curl is
+  still preferred). Fails with a clear error only when neither is
+  available. Closes #1.
+
 ### Changed
 
 - `bashdep::clean` now reports failed orphan removals to stderr and

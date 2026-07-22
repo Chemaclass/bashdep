@@ -31,9 +31,10 @@ See `.claude/rules/bash-style.md` (auto-loaded when editing `bashdep` or any
 
 ### Zero Runtime Dependencies
 
-Library code may only call: `curl`, `awk`, `mktemp`, `mkdir`, `rm`, `cp`,
-`mv`, `printf`, `cat`, `grep`, `sort`, `tr`, `dirname`, `basename`, plus
-shell builtins. **No** `jq`, `python`, `node`, etc. at runtime.
+Library code may only call: `curl` (or `wget` as a fallback), `awk`,
+`mktemp`, `mkdir`, `rm`, `cp`, `mv`, `printf`, `cat`, `grep`, `sort`,
+`tr`, `dirname`, `basename`, plus shell builtins. **No** `jq`, `python`,
+`node`, etc. at runtime.
 
 ### Quality Standards
 
@@ -161,7 +162,7 @@ in each rule file).
 ## Guardrails
 
 ### Never:
-- Add a runtime dependency beyond `curl` / `awk` / `mktemp` / POSIX builtins
+- Add a runtime dependency beyond `curl` / `wget` / `awk` / `mktemp` / POSIX builtins
 - Break Bash 3.2+ compatibility (test on macOS default bash mentally)
 - Change public function signatures without updating `docs/api.md` and `CHANGELOG.md`
 - Skip `make pre_commit/run` before pushing
