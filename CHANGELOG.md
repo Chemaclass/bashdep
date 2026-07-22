@@ -9,7 +9,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - `bashdep::install` downloads dependencies in parallel (up to 4 at a
   time by default). Set `BASHDEP_JOBS` to change the concurrency;
   `BASHDEP_JOBS=1` restores sequential downloads. Dry-run stays
-  sequential for stable preview output.
+  sequential for stable preview output. `BASHDEP_JOBS` must be a
+  non-negative integer; any other value is rejected with a warning and
+  the default of `4` is used (the count feeds an arithmetic test, so a
+  crafted value is never evaluated as an expression).
 - `install` prints a final `installed X, skipped Y, failed Z` summary
   (suppressed by `silent`).
 - CLI `--version` flag prints the version (alongside the existing

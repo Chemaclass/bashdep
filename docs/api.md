@@ -61,8 +61,10 @@ bashdep::install "${DEPENDENCIES[@]}"
 ```
 
 Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`).
-Set `BASHDEP_JOBS=1` for sequential downloads. Returns the number of
-failed downloads (0 on success, capped at 255).
+Set `BASHDEP_JOBS=1` for sequential downloads. `BASHDEP_JOBS` must be a
+non-negative integer; any other value is rejected with a warning and the
+default of `4` is used. Returns the number of failed downloads (0 on
+success, capped at 255).
 
 ## `bashdep::install_from`
 

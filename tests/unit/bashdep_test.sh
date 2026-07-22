@@ -14,6 +14,7 @@ function set_up() {
   BASHDEP_LOCK_DEFER=false
   BASHDEP_LOCK_PENDING=()
   BASHDEP_DEP_SHA=""
+  BASHDEP_JOBS=4
   TEST_DIR=$(mktemp -d)
   BASHDEP_BIN="$(cd "$(current_dir)/../.." && pwd)/bashdep"
 }
@@ -87,6 +88,27 @@ function test_bashdep_classify_dep_no_annotation_leaves_sha_empty() {
   BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
   bashdep::_classify_dep "https://example.com/foo"
   assert_empty "$BASHDEP_DEP_SHA"
+}
+
+function test_bashdep_resolve_jobs_accepts_positive_integer() {
+  BASHDEP_JOBS=8
+  assert_equals "8" "$(bashdep::_resolve_jobs)"
+}
+
+function test_bashdep_resolve_jobs_defaults_to_four_when_unset() {
+  unset BASHDEP_JOBS
+  assert_equals "4" "$(bashdep::_resolve_jobs)"
+}
+
+function test_bashdep_resolve_jobs_rejects_non_numeric() {
+  BASHDEP_JOBS="foo"
+  assert_equals "4" "$(bashdep::_resolve_jobs 2>/dev/null)"
+}
+
+function test_bashdep_resolve_jobs_rejects_arithmetic_injection_payload() {
+  # shellcheck disable=SC2016  # the $(...) must stay literal, not expand here
+  BASHDEP_JOBS='x[$(echo hacked)]'
+  assert_equals "4" "$(bashdep::_resolve_jobs 2>/dev/null)"
 }
 
 function test_bashdep_is_silent_true_when_var_true() {
@@ -910,6 +932,19 @@ function test_bashdep_install_parallel_counts_failures() {
   BASHDEP_JOBS=4
   bashdep::install "https://example.com/a" "https://example.com/b" "https://example.com/c"
   assert_equals 3 "$?"
+}
+
+function test_bashdep_install_neutralizes_arithmetic_injection_in_jobs() {
+  BASHDEP_DIR="$TEST_DIR"
+  local marker="$TEST_DIR/pwned"
+  # BASHDEP_JOBS feeds an arithmetic `[[ -gt ]]` test; a crafted value must
+  # never be evaluated as an arithmetic expression (which executes code).
+  # shellcheck disable=SC2016  # the $(...) must stay literal, not expand here
+  BASHDEP_JOBS='x[$(touch '"$marker"')]'
+  # shellcheck disable=SC2016
+  mock curl 'touch "$3"'
+  bashdep::install "https://example.com/aaa" "https://example.com/bbb" >/dev/null 2>&1
+  assert_file_not_exists "$marker"
 }
 
 function test_bashdep_install_jobs_one_is_sequential() {

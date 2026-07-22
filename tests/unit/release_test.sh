@@ -76,10 +76,29 @@ function test_release_should_skip_gates_false_when_ci_pending() {
   assert_general_error
 }
 
+# Fail-safe: a CI lookup that could not determine a green run (yields "none")
+# must NOT skip the gates, even under --trust-ci. Guards against the gate
+# ever failing open.
+function test_release_should_skip_gates_false_when_ci_lookup_fails() {
+  TRUST_CI=true
+  mock ci_head_conclusion "echo none"
+  should_skip_gates
+  assert_general_error
+}
+
 function test_release_ci_head_conclusion_returns_gh_output() {
   mock git "echo deadsha"
   mock gh "echo success"
   assert_equals "success" "$(ci_head_conclusion)"
+}
+
+# Fail-safe: when the gh lookup itself fails (network/auth/rate-limit), the
+# conclusion must fall back to "none" — the conservative value that makes
+# should_skip_gates run the gates. It must never surface as "success".
+function test_release_ci_head_conclusion_returns_none_when_gh_fails() {
+  mock git "echo deadsha"
+  mock gh "return 1"
+  assert_equals "none" "$(ci_head_conclusion)"
 }
 
 # --- sha256_of ---------------------------------------------------------------
