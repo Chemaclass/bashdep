@@ -1,9 +1,7 @@
 # bashdep
 
 [![Release](https://img.shields.io/github/v/release/Chemaclass/bashdep?sort=semver)](https://github.com/Chemaclass/bashdep/releases/latest)
-[![Tests](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/tests.yml)
-[![Static Analysis](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/static_analysis.yml)
-[![Lint](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/linter.yml)
+[![CI](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Minimal, zero-dependency **bash dependency manager**. Declare URLs;

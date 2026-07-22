@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  # Decide whether code (not just docs) changed, so tests and ShellCheck
+  # can skip docs-only changes while lint always runs.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'bashdep'
+              - 'release.sh'
+              - 'install-dependencies.sh'
+              - '**/*.sh'
+              - '.github/workflows/**'
+              - 'Makefile'
+              - '**/*.mk'
+              - '.editorconfig'
+              - '.env'
+              - 'bin/**'
+
+  tests:
+    name: "Run tests on ${{ matrix.os }}"
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Cache bashunit"
+        uses: actions/cache@v4
+        with:
+          path: lib
+          key: bashunit-${{ runner.os }}-${{ hashFiles('install-dependencies.sh') }}
+
+      - name: "Install bashunit"
+        run: bash install-dependencies.sh
+
+      - name: Run Tests
+        run: make test
+
+  shellcheck:
+    name: "ShellCheck (${{ matrix.os }})"
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        env:
+          SHELLCHECK_OPTS: -e SC1091 -e SC2155
+
+  lint:
+    name: Run Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Editorconfig Linter
+        uses: editorconfig-checker/action-editorconfig-checker@main
+
+      - name: Run Linter
+        run: editorconfig-checker
