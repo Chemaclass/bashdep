@@ -286,9 +286,7 @@ function bashdep::install() {
     failures=$?
   else
     for dep in "${dependencies[@]}"; do
-      bashdep::_classify_dep "$dep"
-      bashdep::setup_directory "$BASHDEP_DEP_DIR" || { failures=$((failures + 1)); continue; }
-      bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || failures=$((failures + 1))
+      bashdep::_install_one "$dep" || failures=$((failures + 1))
     done
   fi
 
@@ -348,13 +346,24 @@ function bashdep::_install_parallel() {
 # its deferred lockfile entry to $2. Returns non-zero on failure.
 function bashdep::_install_one_async() {
   local dep=$1 result_file=$2 entry
-  bashdep::_classify_dep "$dep"
-  bashdep::setup_directory "$BASHDEP_DEP_DIR" || return 1
   BASHDEP_LOCK_PENDING=()
-  bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || return 1
+  bashdep::_install_one "$dep" || return 1
   for entry in ${BASHDEP_LOCK_PENDING[@]+"${BASHDEP_LOCK_PENDING[@]}"}; do
     printf '%s\n' "$entry" >> "$result_file"
   done
+}
+
+# Internal: install one dependency — classify it, ensure its destination
+# directory exists, then download it. _classify_dep sets BASHDEP_DEP_URL and
+# BASHDEP_DEP_DIR, which the two later steps consume. Returns non-zero when
+# the directory cannot be created or the download fails. Shared by the
+# sequential and parallel (async) install paths so the ordering and error
+# semantics live in one place.
+function bashdep::_install_one() {
+  local dep=$1
+  bashdep::_classify_dep "$dep"
+  bashdep::setup_directory "$BASHDEP_DEP_DIR" || return 1
+  bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || return 1
 }
 
 # Internal: classify a dependency string into URL and target directory.
