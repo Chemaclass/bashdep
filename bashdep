@@ -202,7 +202,7 @@ function bashdep::clean() {
 function bashdep::doctor() {
   local issues=0
   local self_name="${BASH_SOURCE[0]##*/}"
-  local dir lock_file lock_names file_path entry_name entry_url seen=""
+  local dir lock_file lock_names file_path line entry_name entry_url seen=""
   for dir in "$BASHDEP_DIR" "$BASHDEP_DEV_DIR"; do
     [[ -z "$dir" || ! -d "$dir" ]] && continue
     case ":$seen:" in *":$dir:"*) continue ;; esac
@@ -213,8 +213,17 @@ function bashdep::doctor() {
       continue
     fi
     bashdep::_log "checking '$dir'..."
-    while IFS=$'\t' read -r entry_name entry_url; do
-      [[ -z "$entry_name" ]] && continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ -z "$line" ]] && continue
+      entry_name="${line%%$'\t'*}"
+      entry_url="${line#*$'\t'}"
+      # A valid entry is exactly two tab-separated non-empty fields.
+      if [[ "$line" != *$'\t'* || "$entry_url" == *$'\t'* \
+            || -z "$entry_name" || -z "$entry_url" ]]; then
+        bashdep::_log "  malformed lockfile line: '$line'"
+        issues=$((issues + 1))
+        continue
+      fi
       if [[ ! -f "$dir/$entry_name" ]]; then
         bashdep::_log "  missing file for '$entry_name' (url: $entry_url)"
         issues=$((issues + 1))
@@ -449,9 +458,11 @@ function bashdep::_download() {
       BASHDEP_DOWNLOADER=none
     fi
   fi
+  # `--` ends option parsing so a URL beginning with '-' can never be read
+  # as a flag. Output is named before it, so mocks see the dest at arg 3.
   case $BASHDEP_DOWNLOADER in
-    curl) curl -fsSL "$url" -o "$output" ;;
-    wget) wget -qO "$output" "$url" ;;
+    curl) curl -fsSL -o "$output" -- "$url" ;;
+    wget) wget -qO "$output" -- "$url" ;;
     *) echo "Error: neither curl nor wget is installed." >&2; return 127 ;;
   esac
 }

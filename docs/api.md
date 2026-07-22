@@ -120,11 +120,13 @@ failed removal is reported to stderr. Honors dry-run mode.
 
 ## `bashdep::doctor`
 
-Check each managed directory for inconsistencies. Reports two kinds of
+Check each managed directory for inconsistencies. Reports three kinds of
 issues:
 
 - Lockfile entries whose file is missing on disk.
 - Files on disk with no lockfile entry.
+- Malformed lockfile lines (not exactly two tab-separated fields), which
+  catches merge-conflict or hand-edit damage.
 
 ```bash
 bashdep::doctor

@@ -16,8 +16,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   `version` command).
 - CLI `completion [bash|zsh]` prints a shell completion script for the
   commands and flags. Install with `source <(bashdep completion bash)`.
+- `bashdep::doctor` now reports malformed lockfile lines (not exactly two
+  tab-separated fields), catching merge-conflict or hand-edit damage.
 
 ### Changed
+
+- Downloads pass `--` before the URL (curl and wget) so a URL beginning
+  with `-` can never be misparsed as an option.
 
 ### Fixed
 
