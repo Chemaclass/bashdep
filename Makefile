@@ -3,7 +3,8 @@ SHELL=/bin/bash
 -include .env
 
 STATIC_ANALYSIS_CHECKER := $(shell which shellcheck 2> /dev/null)
-LINTER_CHECKER := $(shell which ec 2> /dev/null)
+LINTER_CHECKER := $(shell which ec 2> /dev/null || which editorconfig-checker 2> /dev/null)
+BASHUNIT_FLAGS ?=
 GIT_DIR = $(shell git rev-parse --git-dir 2> /dev/null)
 
 OS:=
@@ -40,7 +41,8 @@ help:
 	@echo "Usage: make [command]"
 	@echo ""
 	@echo "Commands:"
-	@echo "  test                     Run the tests"
+	@echo "  test                     Run the tests (BASHUNIT_FLAGS=--simple for quiet output)"
+	@echo "  check                    Run the full gate: test + sa + lint"
 	@echo "  pre_commit/install       Install the pre-commit hook"
 	@echo "  pre_commit/run           Function that will be called when the pre-commit hook runs"
 	@echo "  sa                       Run shellcheck static analysis tool"
@@ -53,7 +55,12 @@ SRC_SCRIPTS_DIR=src
 PRE_COMMIT_SCRIPTS_FILE=./bin/pre-commit
 
 test: $(TEST_SCRIPTS_DIR)
-	@lib/bashunit tests
+	@if [ ! -x lib/bashunit ]; then \
+		printf "\e[1m\e[31m%s\e[0m\n" "bashunit not found in lib/ — run: make deps" && exit 1; \
+	fi
+	@lib/bashunit $(BASHUNIT_FLAGS) tests
+
+check: test sa lint
 
 pre_commit/install:
 	@echo "Installing pre-commit hook"
@@ -76,7 +83,7 @@ lint:
 ifndef LINTER_CHECKER
 	@printf "\e[1m\e[31m%s\e[0m\n" "Editorconfig not installed: Lint not performed!" && exit 1
 else
-	@ec && printf "\e[1m\e[32m%s\e[0m\n" "editorconfig-check: OK!"
+	@$(LINTER_CHECKER) && printf "\e[1m\e[32m%s\e[0m\n" "editorconfig-check: OK!"
 endif
 
 deps:
