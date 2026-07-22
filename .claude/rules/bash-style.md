@@ -27,10 +27,11 @@ When in doubt: assume macOS default bash and avoid the feature.
 
 ## Runtime Dependency Policy
 
-Library code in `bashdep` may only call: `curl`, `awk`, `mktemp`, `mkdir`,
-`rm`, `cp`, `mv`, `printf`, `cat`, `grep`, `sort`, `tr`, `dirname`,
-`basename`, `stat`, plus shell builtins. **Do not** introduce `jq`,
-`python`, `node`, `xargs --max-args`, GNU-only flags, etc.
+Library code in `bashdep` may only call: `curl` (or `wget` as a
+fallback), `awk`, `mktemp`, `mkdir`, `rm`, `cp`, `mv`, `printf`, `cat`,
+`grep`, `sort`, `tr`, `dirname`, `basename`, `stat`, plus shell builtins.
+**Do not** introduce `jq`, `python`, `node`, `xargs --max-args`,
+GNU-only flags, etc.
 
 If a feature seems to need a new dependency, propose it in an issue first.
 

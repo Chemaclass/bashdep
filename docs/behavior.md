@@ -64,8 +64,10 @@ both by default.
 - `bashdep::clean` returns the number of orphans it could not remove
   (capped at 255), reporting each failed removal to stderr; `0` when all
   orphans were removed.
-- `curl` failures print the exit code to stderr (e.g. `22` = HTTP error,
-  `6` = DNS, `7` = connect refused).
+- Downloads use `curl` when available and fall back to `wget`; if neither
+  is installed the download fails with exit `127`.
+- Download failures print the downloader's exit code to stderr (e.g. curl
+  `22` = HTTP error, `6` = DNS, `7` = connect refused).
 
 Pair with `set -euo pipefail` and `|| exit $?` to fail fast:
 

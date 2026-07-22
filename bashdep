@@ -47,7 +47,7 @@ function bashdep::self_update() {
   }
 
   bashdep::_log "Updating '$target' from '$url'..."
-  if ! curl -fsSL "$url" -o "$tmp"; then
+  if ! bashdep::_download "$url" "$tmp"; then
     rm -f "$tmp"
     echo "Error: failed to download bashdep from '$url'" >&2
     return 1
@@ -330,10 +330,10 @@ function bashdep::download_url() {
   bashdep::_vlog "  url: $url"
 
   local rc
-  curl -fsSL "$url" -o "$destination_file"
+  bashdep::_download "$url" "$destination_file"
   rc=$?
   if [[ $rc -ne 0 ]]; then
-    echo "Error: curl exit $rc — failed to install $file_name from $url" >&2
+    echo "Error: download failed (exit $rc) — could not install $file_name from $url" >&2
     return 1
   fi
 
@@ -341,6 +341,25 @@ function bashdep::download_url() {
   chmod +x "$destination_file"
   bashdep::_lock_set "$lock_file" "$file_name" "$url" || return 1
   bashdep::_vlog "  lockfile: $lock_file"
+}
+
+# Internal: capability checks for the supported downloaders.
+function bashdep::_has_curl() { command -v curl >/dev/null 2>&1; }
+function bashdep::_has_wget() { command -v wget >/dev/null 2>&1; }
+
+# Internal: download $1 (url) into $2 (output path). Prefers curl and falls
+# back to wget when curl is not installed. Returns the downloader's own exit
+# code, or 127 when neither curl nor wget is available.
+function bashdep::_download() {
+  local url=$1 output=$2
+  if bashdep::_has_curl; then
+    curl -fsSL "$url" -o "$output"
+  elif bashdep::_has_wget; then
+    wget -qO "$output" "$url"
+  else
+    echo "Error: neither curl nor wget is installed." >&2
+    return 127
+  fi
 }
 
 function bashdep::is_silent() {

@@ -8,7 +8,8 @@
 
 Minimal, zero-dependency **bash dependency manager**. Declare URLs;
 bashdep downloads them into `lib/` and keeps installs idempotent via a
-per-directory `.bashdep.lock`. No registry, no runtime — just `curl`.
+per-directory `.bashdep.lock`. No registry, no runtime — just `curl`
+(or `wget`).
 
 ## Quick start
 

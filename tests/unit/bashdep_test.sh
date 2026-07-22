@@ -621,6 +621,44 @@ function test_bashdep_download_url_returns_zero_on_success() {
   assert_successful_code "$?"
 }
 
+function test_bashdep_download_prefers_curl_when_available() {
+  mock bashdep::_has_curl "return 0"
+  mock bashdep::_has_wget "return 0"
+  # shellcheck disable=SC2016
+  mock curl 'touch "$4.curl"'
+  # shellcheck disable=SC2016
+  mock wget 'touch "$2.wget"'
+  bashdep::_download "https://example.com/x" "$TEST_DIR/out"
+  assert_file_exists "$TEST_DIR/out.curl"
+  assert_file_not_exists "$TEST_DIR/out.wget"
+}
+
+function test_bashdep_download_uses_wget_when_curl_absent() {
+  mock bashdep::_has_curl "return 1"
+  # shellcheck disable=SC2016
+  mock wget 'touch "$2"'
+  bashdep::_download "https://example.com/tool" "$TEST_DIR/out"
+  assert_file_exists "$TEST_DIR/out"
+}
+
+function test_bashdep_download_errors_when_no_downloader() {
+  mock bashdep::_has_curl "return 1"
+  mock bashdep::_has_wget "return 1"
+  local err rc
+  err=$(bashdep::_download "https://example.com/x" "$TEST_DIR/out" 2>&1); rc=$?
+  assert_equals 127 "$rc"
+  assert_contains "neither curl nor wget" "$err"
+}
+
+function test_bashdep_download_url_works_with_wget_fallback() {
+  mock bashdep::_has_curl "return 1"
+  # shellcheck disable=SC2016
+  mock wget 'touch "$2"'
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
+  assert_file_exists "$TEST_DIR/tool"
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
 function test_bashdep_download_url_returns_zero_when_verbose_off() {
   # shellcheck disable=SC2016
   mock curl 'touch "$4"'
@@ -1404,7 +1442,7 @@ function test_bashdep_cli_install_curl_failure_exits_nonzero() {
   stderr=$(PATH="$TEST_DIR/bin:$PATH" bash "$BASHDEP_BIN" install \
     --dir="$TEST_DIR" "https://example.com/tool" 2>&1 >/dev/null)
   assert_general_error
-  assert_contains "curl exit 7" "$stderr"
+  assert_contains "exit 7" "$stderr"
 }
 
 # Positional-argument accumulation: the first non-flag token is the
