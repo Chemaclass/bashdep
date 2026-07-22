@@ -73,6 +73,7 @@ not source.
 | `--dry-run`      | Preview every step. No file/git/network changes.            |
 | `--force`        | Skip the interactive `Release X.Y.Z?` confirmation.         |
 | `--no-gh`        | Skip the GitHub release step (still pushes commit + tag).   |
+| `--trust-ci`     | Skip the local `test/sa/lint` gate when HEAD already has a green CI run (needs `gh`); otherwise runs the gate. |
 | `--remote=NAME`  | Push to a remote other than `origin`.                       |
 
 CI mode (no prompts, no `gh` step):
