@@ -4,6 +4,7 @@ BASHDEP_VERSION="0.6.0"
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
+BASHDEP_SHA_ANNOTATION="#sha256="
 BASHDEP_LOCK_FILE=".bashdep.lock"
 BASHDEP_DEP_FILE=".bashdep"
 BASHDEP_SILENT=false
@@ -361,11 +362,12 @@ function bashdep::_install_one_async() {
 # Sets BASHDEP_DEP_URL and BASHDEP_DEP_DIR. Pure (no I/O).
 function bashdep::_classify_dep() {
   local dep=$1
-  # Optional integrity annotation: a trailing '#sha256=<hex>' is stripped
-  # off and recorded in BASHDEP_DEP_SHA for download_url to verify.
-  if [[ "$dep" == *"#sha256="* ]]; then
-    BASHDEP_DEP_SHA="${dep#*#sha256=}"
-    dep="${dep%#sha256=*}"
+  # Optional integrity annotation: a trailing BASHDEP_SHA_ANNOTATION marker
+  # ('#sha256=<hex>') is stripped off and recorded in BASHDEP_DEP_SHA for
+  # download_url to verify.
+  if [[ "$dep" == *"$BASHDEP_SHA_ANNOTATION"* ]]; then
+    BASHDEP_DEP_SHA="${dep#*"$BASHDEP_SHA_ANNOTATION"}"
+    dep="${dep%"$BASHDEP_SHA_ANNOTATION"*}"
   else
     BASHDEP_DEP_SHA=""
   fi
