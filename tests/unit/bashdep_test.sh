@@ -153,7 +153,7 @@ function test_bashdep_download_url_verbose_logs_url_on_skip() {
 
 function test_bashdep_download_url_verbose_logs_lockfile_after_install() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   bashdep::setup verbose=true
 
   local output
@@ -637,7 +637,7 @@ function test_bashdep_download_url_curl_failure_returns_non_zero() {
 
 function test_bashdep_download_url_returns_zero_on_success() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
   assert_successful_code "$?"
 }
@@ -646,7 +646,7 @@ function test_bashdep_download_prefers_curl_when_available() {
   mock bashdep::_has_curl "return 0"
   mock bashdep::_has_wget "return 0"
   # shellcheck disable=SC2016
-  mock curl 'touch "$4.curl"'
+  mock curl 'touch "$3.curl"'
   # shellcheck disable=SC2016
   mock wget 'touch "$2.wget"'
   bashdep::_download "https://example.com/x" "$TEST_DIR/out"
@@ -682,7 +682,7 @@ function test_bashdep_download_url_works_with_wget_fallback() {
 
 function test_bashdep_download_url_returns_zero_when_verbose_off() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_VERBOSE=false
   bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
   assert_successful_code "$?"
@@ -690,7 +690,7 @@ function test_bashdep_download_url_returns_zero_when_verbose_off() {
 
 function test_bashdep_download_url_returns_zero_when_verbose_on() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_VERBOSE=true
   bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
   assert_successful_code "$?"
@@ -698,7 +698,7 @@ function test_bashdep_download_url_returns_zero_when_verbose_on() {
 
 function test_bashdep_install_returns_zero_after_real_download() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   bashdep::install "https://example.com/a" >/dev/null
   assert_successful_code "$?"
@@ -708,7 +708,7 @@ function test_bashdep_install_from_returns_zero_after_real_download() {
   local file="$TEST_DIR/.bashdep"
   printf 'https://example.com/a\n' > "$file"
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   bashdep::install_from "$file" >/dev/null
   assert_successful_code "$?"
@@ -737,9 +737,9 @@ function test_bashdep_download_url_writes_lockfile_entry() {
 }
 
 function test_bashdep_download_url_chmod_makes_file_executable() {
-  # download_url calls: curl -fsSL "$url" -o "$destination_file" — so $4 is the dest path.
-  # shellcheck disable=SC2016 # Single quotes intentional: $4 expands inside mock body, not here.
-  mock curl 'touch "$4"'
+  # _download calls: curl -fsSL -o "$dest" -- "$url" — so $3 is the dest path.
+  # shellcheck disable=SC2016 # Single quotes intentional: $3 expands inside mock body, not here.
+  mock curl 'touch "$3"'
   bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
   [[ -x "$TEST_DIR/tool" ]]
   assert_successful_code "$?"
@@ -757,8 +757,8 @@ function test_bashdep_download_url_url_change_updates_lock() {
 }
 
 function test_bashdep_install_lockfile_contains_all_deps() {
-  # shellcheck disable=SC2016 # Single quotes intentional: $4 expands inside mock body, not here.
-  mock curl 'touch "$4"'
+  # shellcheck disable=SC2016 # Single quotes intentional: $3 expands inside mock body, not here.
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
 
   bashdep::install \
@@ -773,7 +773,7 @@ function test_bashdep_install_lockfile_contains_all_deps() {
 
 function test_bashdep_install_batch_keeps_lockfile_sorted() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   bashdep::install \
     "https://example.com/bbb" \
@@ -785,7 +785,7 @@ bbb	https://example.com/bbb" "$lock"
 
 function test_bashdep_install_batch_last_write_wins_for_same_name() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   bashdep::install \
     "https://a.example.com/tool" \
@@ -799,7 +799,7 @@ function test_bashdep_install_batch_preserves_existing_entry() {
   BASHDEP_DIR="$TEST_DIR"
   _seed_installed "$TEST_DIR" existing https://example.com/existing
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   bashdep::install "https://example.com/new" >/dev/null
   local lock; lock=$(cat "$TEST_DIR/.bashdep.lock")
   assert_contains "existing" "$lock"
@@ -817,7 +817,7 @@ function test_bashdep_install_batch_noop_when_all_skipped() {
 
 function test_bashdep_install_parallel_installs_all_deps() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   BASHDEP_JOBS=4
   bashdep::install \
@@ -841,7 +841,7 @@ function test_bashdep_install_parallel_counts_failures() {
 
 function test_bashdep_install_jobs_one_is_sequential() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   BASHDEP_JOBS=1
   bashdep::install "https://example.com/aaa" "https://example.com/bbb" >/dev/null
@@ -852,7 +852,7 @@ function test_bashdep_install_jobs_one_is_sequential() {
 
 function test_bashdep_install_prints_summary() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   local out; out=$(bashdep::install \
     "https://example.com/aaa" "https://example.com/bbb")
@@ -863,7 +863,7 @@ function test_bashdep_install_summary_counts_skipped() {
   BASHDEP_DIR="$TEST_DIR"
   _seed_installed "$TEST_DIR" existing https://example.com/existing
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   local out; out=$(bashdep::install \
     "https://example.com/existing" "https://example.com/new")
   assert_contains "installed 1, skipped 1, failed 0" "$out"
@@ -871,7 +871,7 @@ function test_bashdep_install_summary_counts_skipped() {
 
 function test_bashdep_install_summary_suppressed_when_silent() {
   # shellcheck disable=SC2016
-  mock curl 'touch "$4"'
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$TEST_DIR"
   BASHDEP_SILENT=true
   local out; out=$(bashdep::install "https://example.com/aaa")
@@ -1022,7 +1022,7 @@ function test_bashdep_uninstall_dry_run_skips_actual_removal() {
 function test_bashdep_self_update_writes_target_from_curl() {
   local target="$TEST_DIR/bashdep_copy"
   # shellcheck disable=SC2016
-  mock curl 'printf "NEW_BASHDEP_CONTENT\n" > "$4"'
+  mock curl 'printf "NEW_BASHDEP_CONTENT\n" > "$3"'
 
   bashdep::self_update main "$target" >/dev/null
   assert_file_exists "$target"
@@ -1052,9 +1052,9 @@ function test_bashdep_self_update_curl_failure_returns_nonzero() {
 function test_bashdep_self_update_uses_url_template() {
   local target="$TEST_DIR/bashdep_copy"
   BASHDEP_SELF_URL_TEMPLATE="https://example.test/bashdep/%s"
-  # download_url contract: curl -fsSL <url> -o <dest> -> $2=url, $4=dest.
+  # _download contract: curl -fsSL -o <dest> -- <url> -> $3=dest, $5=url.
   # shellcheck disable=SC2016
-  mock curl 'printf "from=%s\n" "$2" > "$4"'
+  mock curl 'printf "from=%s\n" "$5" > "$3"'
 
   bashdep::self_update v1.2.3 "$target" >/dev/null
   assert_contains "from=https://example.test/bashdep/v1.2.3" "$(cat "$target")"
@@ -1114,6 +1114,26 @@ function test_bashdep_doctor_counts_issues_across_dirs() {
 
   bashdep::doctor >/dev/null
   assert_equals 2 "$?"
+}
+
+function test_bashdep_doctor_flags_malformed_lockfile_line() {
+  BASHDEP_DIR="$TEST_DIR"
+  printf 'valid\thttps://example.com/valid\ngarbage_without_a_tab\n' \
+    > "$TEST_DIR/.bashdep.lock"
+  touch "$TEST_DIR/valid"
+
+  local out; out=$(bashdep::doctor)
+  assert_general_error
+  assert_contains "malformed lockfile line: 'garbage_without_a_tab'" "$out"
+}
+
+function test_bashdep_doctor_flags_extra_field_line() {
+  BASHDEP_DIR="$TEST_DIR"
+  printf 'name\thttps://example.com/x\textra\n' > "$TEST_DIR/.bashdep.lock"
+
+  local out; out=$(bashdep::doctor)
+  assert_general_error
+  assert_contains "malformed" "$out"
 }
 
 function test_bashdep_clean_removes_orphan_files() {
@@ -1303,8 +1323,8 @@ function test_bashdep_install_dev_lockfile_separated_from_main() {
   local main_dir="$TEST_DIR/main"
   local dev_dir="$TEST_DIR/dev"
   mkdir -p "$main_dir" "$dev_dir"
-  # shellcheck disable=SC2016 # Single quotes intentional: $4 expands inside mock body, not here.
-  mock curl 'touch "$4"'
+  # shellcheck disable=SC2016 # Single quotes intentional: $3 expands inside mock body, not here.
+  mock curl 'touch "$3"'
   BASHDEP_DIR="$main_dir"
   BASHDEP_DEV_DIR="$dev_dir"
 
