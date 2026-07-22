@@ -13,6 +13,7 @@ function set_up() {
   BASHDEP_DOWNLOADER=""
   BASHDEP_LOCK_DEFER=false
   BASHDEP_LOCK_PENDING=()
+  BASHDEP_DEP_SHA=""
   TEST_DIR=$(mktemp -d)
   BASHDEP_BIN="$(cd "$(current_dir)/../.." && pwd)/bashdep"
 }
@@ -65,6 +66,27 @@ function test_bashdep_classify_dep_honors_overridden_dirs() {
   bashdep::_classify_dep "https://example.com/foo@dev"
   assert_equals "https://example.com/foo" "$BASHDEP_DEP_URL"
   assert_equals "src/dev"                 "$BASHDEP_DEP_DIR"
+}
+
+function test_bashdep_classify_dep_parses_sha256_annotation() {
+  BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
+  bashdep::_classify_dep "https://example.com/foo#sha256=abc123"
+  assert_equals "https://example.com/foo" "$BASHDEP_DEP_URL"
+  assert_equals "abc123"                  "$BASHDEP_DEP_SHA"
+}
+
+function test_bashdep_classify_dep_sha256_combined_with_dev() {
+  BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
+  bashdep::_classify_dep "https://example.com/foo@dev#sha256=deadbeef"
+  assert_equals "https://example.com/foo" "$BASHDEP_DEP_URL"
+  assert_equals "lib/dev"                 "$BASHDEP_DEP_DIR"
+  assert_equals "deadbeef"                "$BASHDEP_DEP_SHA"
+}
+
+function test_bashdep_classify_dep_no_annotation_leaves_sha_empty() {
+  BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
+  bashdep::_classify_dep "https://example.com/foo"
+  assert_empty "$BASHDEP_DEP_SHA"
 }
 
 function test_bashdep_is_silent_true_when_var_true() {
@@ -678,6 +700,57 @@ function test_bashdep_download_url_works_with_wget_fallback() {
   bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
   assert_file_exists "$TEST_DIR/tool"
   assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_download_url_accepts_matching_checksum() {
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  printf 'hello\n' > "$TEST_DIR/ref"
+  BASHDEP_DEP_SHA=$(bashdep::_sha256 "$TEST_DIR/ref")
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" >/dev/null
+  assert_file_exists "$TEST_DIR/tool"
+  assert_file_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_download_url_rejects_mismatching_checksum() {
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  BASHDEP_DEP_SHA="0000000000000000000000000000000000000000000000000000000000000000"
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" 2>/dev/null
+  assert_general_error
+  assert_file_not_exists "$TEST_DIR/tool"
+  assert_file_not_exists "$TEST_DIR/.bashdep.lock"
+}
+
+function test_bashdep_download_url_fails_when_checksum_tool_missing() {
+  # shellcheck disable=SC2016
+  mock curl 'printf "x" > "$3"'
+  mock bashdep::_sha256 "return 1"
+  BASHDEP_DEP_SHA="anything"
+  bashdep::download_url "https://example.com/tool" "$TEST_DIR" 2>/dev/null
+  assert_general_error
+  assert_file_not_exists "$TEST_DIR/tool"
+}
+
+function test_bashdep_install_verifies_checksum_annotation() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_JOBS=1
+  printf 'hello\n' > "$TEST_DIR/ref"
+  local sha; sha=$(bashdep::_sha256 "$TEST_DIR/ref")
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  bashdep::install "https://example.com/tool#sha256=$sha" >/dev/null
+  assert_file_exists "$TEST_DIR/tool"
+}
+
+function test_bashdep_install_rejects_bad_checksum_annotation() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_JOBS=1
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  bashdep::install "https://example.com/tool#sha256=wrong" >/dev/null 2>&1
+  assert_equals 1 "$?"
+  assert_file_not_exists "$TEST_DIR/tool"
 }
 
 function test_bashdep_download_url_returns_zero_when_verbose_off() {
