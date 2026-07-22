@@ -361,6 +361,14 @@ function bashdep::_install_one_async() {
 # Sets BASHDEP_DEP_URL and BASHDEP_DEP_DIR. Pure (no I/O).
 function bashdep::_classify_dep() {
   local dep=$1
+  # Optional integrity annotation: a trailing '#sha256=<hex>' is stripped
+  # off and recorded in BASHDEP_DEP_SHA for download_url to verify.
+  if [[ "$dep" == *"#sha256="* ]]; then
+    BASHDEP_DEP_SHA="${dep#*#sha256=}"
+    dep="${dep%#sha256=*}"
+  else
+    BASHDEP_DEP_SHA=""
+  fi
   if [[ "$dep" == *"$BASHDEP_DEV_SUFFIX" ]]; then
     BASHDEP_DEP_URL="${dep%"$BASHDEP_DEV_SUFFIX"}"
     BASHDEP_DEP_DIR="$BASHDEP_DEV_DIR"
@@ -428,6 +436,18 @@ function bashdep::download_url() {
     return 1
   fi
 
+  local expected_sha="${BASHDEP_DEP_SHA:-}"
+  if [[ -n "$expected_sha" ]]; then
+    local actual_sha
+    actual_sha=$(bashdep::_sha256 "$destination_file") || { rm -f "$destination_file"; return 1; }
+    if [[ "$actual_sha" != "$expected_sha" ]]; then
+      rm -f "$destination_file"
+      echo "Error: checksum mismatch for $file_name (expected $expected_sha, got $actual_sha)" >&2
+      return 1
+    fi
+    bashdep::_vlog "  sha256 verified: $file_name"
+  fi
+
   bashdep::_log "> $file_name installed successfully in '$destination_dir'"
   chmod +x "$destination_file"
   if [[ "$BASHDEP_LOCK_DEFER" == true ]]; then
@@ -441,6 +461,20 @@ function bashdep::download_url() {
 # Internal: capability checks for the supported downloaders.
 function bashdep::_has_curl() { command -v curl >/dev/null 2>&1; }
 function bashdep::_has_wget() { command -v wget >/dev/null 2>&1; }
+
+# Internal: print the SHA-256 hex of a file, portable across macOS
+# (shasum) and Linux (sha256sum). Returns 1 if neither tool is available.
+function bashdep::_sha256() {
+  local file=$1
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+  else
+    echo "Error: need 'shasum' or 'sha256sum' to verify checksums." >&2
+    return 1
+  fi
+}
 
 # Internal: download $1 (url) into $2 (output path). Prefers curl and falls
 # back to wget when curl is not installed. Returns the downloader's own exit

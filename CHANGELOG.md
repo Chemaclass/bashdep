@@ -18,6 +18,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   commands and flags. Install with `source <(bashdep completion bash)`.
 - `bashdep::doctor` now reports malformed lockfile lines (not exactly two
   tab-separated fields), catching merge-conflict or hand-edit damage.
+- Opt-in checksum verification: append `#sha256=<hex>` to a dependency
+  URL and bashdep verifies the download's SHA-256 before recording it.
+  On mismatch the install fails and leaves no file or lockfile entry.
 
 ### Changed
 

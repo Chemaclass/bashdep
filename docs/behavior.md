@@ -53,6 +53,22 @@ DEPENDENCIES=(
 Each directory keeps its own `.bashdep.lock`. `bashdep::list` reads
 both by default.
 
+## Checksum verification (opt-in)
+
+Append `#sha256=<hex>` to a dependency URL to have bashdep verify the
+download's SHA-256 before recording it:
+
+```
+https://example.com/tool.sh#sha256=e3b0c44298fc1c149afbf4c8996fb924...
+https://example.com/dev-tool.sh@dev#sha256=2c26b46b68ffc68ff99b453c...
+```
+
+The annotation is stripped before download (`curl`/`wget` never see it)
+and can combine with the `@dev` suffix. On a mismatch — or when neither
+`shasum` nor `sha256sum` is available — the download fails, the file is
+removed, and no lockfile entry is written. Without the annotation,
+nothing is verified (the default).
+
 ## Error handling
 
 - `bashdep::install` downloads in parallel (up to `BASHDEP_JOBS`, default
