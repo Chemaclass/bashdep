@@ -79,9 +79,10 @@ run() {
 # macOS (shasum) and Linux (sha256sum). Runs from the file's directory so
 # the recorded name is the bare basename, not a path.
 sha256_of() {
-  local path=$1 dir base
-  dir=$(dirname "$path")
-  base=$(basename "$path")
+  local path=$1
+  local base="${path##*/}"
+  local dir="${path%/*}"
+  [[ "$dir" == "$path" ]] && dir="."
   if command -v shasum >/dev/null 2>&1; then
     ( cd "$dir" && shasum -a 256 "$base" )
   else
