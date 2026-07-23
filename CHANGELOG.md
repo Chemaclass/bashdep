@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.7.0] - 2026-07-23
+
+### Added
+
 - `bashdep::install` downloads dependencies in parallel (up to 4 at a
   time by default). Set `BASHDEP_JOBS` to change the concurrency;
   `BASHDEP_JOBS=1` restores sequential downloads. Dry-run stays
@@ -152,7 +160,8 @@ download URLs return 404. Git tags are preserved for history.
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/Chemaclass/bashdep/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/Chemaclass/bashdep/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Chemaclass/bashdep/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/Chemaclass/bashdep/compare/0.1...0.4.2
