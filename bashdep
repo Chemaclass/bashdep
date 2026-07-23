@@ -378,7 +378,7 @@ function bashdep::_install_one_async() {
 # semantics live in one place.
 function bashdep::_install_one() {
   local dep=$1
-  bashdep::_classify_dep "$dep"
+  bashdep::_classify_dep "$dep" || return 1
   bashdep::setup_directory "$BASHDEP_DEP_DIR" || return 1
   bashdep::download_url "$BASHDEP_DEP_URL" "$BASHDEP_DEP_DIR" || return 1
 }
@@ -394,6 +394,12 @@ function bashdep::_classify_dep() {
   if [[ "$dep" == *"$BASHDEP_SHA_ANNOTATION"* ]]; then
     BASHDEP_DEP_SHA="${dep#*"$BASHDEP_SHA_ANNOTATION"}"
     dep="${dep%"$BASHDEP_SHA_ANNOTATION"*}"
+    # Reject a present-but-empty or non-hex pin loudly, rather than
+    # silently skipping verification the caller asked for.
+    if [[ -z "$BASHDEP_DEP_SHA" || "$BASHDEP_DEP_SHA" == *[!0-9a-fA-F]* ]]; then
+      echo "Error: invalid '$BASHDEP_SHA_ANNOTATION' value (expected a hex sha256)." >&2
+      return 1
+    fi
   else
     BASHDEP_DEP_SHA=""
   fi
