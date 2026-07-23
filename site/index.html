@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bashdep — a minimal bash dependency manager</title>
+  <meta name="description" content="bashdep is a minimal, zero-dependency bash dependency manager: declare URLs, get idempotent installs with a lockfile, parallel downloads, and optional checksum verification.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230d1117'/%3E%3Cpath d='M3 5l3 3-3 3M8 11h5' stroke='%2338d39f' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f4f6f8;
+      --bg-term: #0d1117;
+      --fg: #1c2128;
+      --fg-soft: #57606a;
+      --border: #d8dee4;
+      --accent: #0f9d6b;
+      --accent-2: #1f6feb;
+      --term-fg: #d7e0ea;
+      --term-green: #38d39f;
+      --term-cyan: #56d4dd;
+      --term-dim: #8b98a5;
+      --radius: 12px;
+      --maxw: 1080px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117;
+        --bg-soft: #161b22;
+        --bg-term: #010409;
+        --fg: #e6edf3;
+        --fg-soft: #9198a1;
+        --border: #30363d;
+        --accent: #38d39f;
+        --accent-2: #58a6ff;
+      }
+    }
+    :root[data-theme="light"] {
+      --bg: #ffffff; --bg-soft: #f4f6f8; --bg-term: #0d1117;
+      --fg: #1c2128; --fg-soft: #57606a; --border: #d8dee4;
+      --accent: #0f9d6b; --accent-2: #1f6feb;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0d1117; --bg-soft: #161b22; --bg-term: #010409;
+      --fg: #e6edf3; --fg-soft: #9198a1; --border: #30363d;
+      --accent: #38d39f; --accent-2: #58a6ff;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, pre, .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+    section { padding: 72px 0; border-top: 1px solid var(--border); }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: saturate(140%) blur(8px);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav { display: flex; align-items: center; gap: 20px; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+    .brand .glyph { color: var(--accent); }
+    .nav .spacer { flex: 1; }
+    .nav a.navlink { color: var(--fg-soft); font-size: 14px; font-weight: 500; }
+    .nav a.navlink:hover { color: var(--fg); text-decoration: none; }
+    @media (max-width: 720px) { .nav a.navlink { display: none; } }
+    .btn {
+      display: inline-block; padding: 8px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-soft);
+      color: var(--fg); font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover { border-color: var(--accent); text-decoration: none; }
+    .btn.primary { background: var(--accent); color: #04120c; border-color: transparent; }
+    .btn.primary:hover { filter: brightness(1.06); }
+    #themeToggle { padding: 8px 10px; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 84px 0 64px; }
+    .hero .tag {
+      display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+      color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      padding: 4px 12px; border-radius: 999px; margin-bottom: 22px;
+    }
+    .hero h1 { font-size: clamp(34px, 6vw, 56px); margin: 0 0 14px; }
+    .hero h1 .accent { color: var(--accent); }
+    .hero p.lead { font-size: clamp(17px, 2.4vw, 21px); color: var(--fg-soft); max-width: 680px; margin: 0 auto 30px; }
+    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 34px; }
+    .cta .btn { padding: 11px 20px; font-size: 15px; }
+
+    /* Terminal card */
+    .term {
+      max-width: 760px; margin: 0 auto; text-align: left;
+      background: var(--bg-term); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: 0 18px 50px -20px rgba(0,0,0,.5);
+    }
+    .term .bar { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid #ffffff14; }
+    .term .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .term .dot.r { background: #ff5f56; } .term .dot.y { background: #ffbd2e; } .term .dot.g { background: #27c93f; }
+    .term .bar .name { margin-left: 8px; color: var(--term-dim); font-size: 12px; }
+    .term pre { margin: 0; padding: 18px 18px 20px; overflow-x: auto; color: var(--term-fg); font-size: 13.5px; line-height: 1.7; }
+    .term .p { color: var(--term-green); } .term .c { color: var(--term-cyan); } .term .d { color: var(--term-dim); }
+
+    /* Generic content */
+    .lead-2 { color: var(--fg-soft); font-size: 18px; max-width: 720px; }
+    h2.sec { font-size: clamp(26px, 4vw, 34px); margin: 0 0 8px; }
+    .kicker { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; font-weight: 700; color: var(--accent); margin: 0 0 10px; }
+
+    /* Why: problem/solution */
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 32px; }
+    @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 24px;
+    }
+    .card h3 { margin: 0 0 12px; font-size: 18px; display: flex; align-items: center; gap: 9px; }
+    .card ul { margin: 0; padding-left: 18px; color: var(--fg-soft); }
+    .card li { margin: 7px 0; }
+    .card.bad h3 { color: #e5534b; } .card.good h3 { color: var(--accent); }
+
+    /* Feature grid */
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 34px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .feat { background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .feat .ic { font-size: 22px; }
+    .feat h3 { margin: 12px 0 6px; font-size: 16px; }
+    .feat p { margin: 0; color: var(--fg-soft); font-size: 14.5px; }
+
+    /* How: flow */
+    .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin-top: 34px; }
+    .flow .node {
+      flex: 1 1 150px; background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; min-width: 0;
+    }
+    .flow .node .t { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .flow .node .s { color: var(--fg-soft); font-size: 13px; }
+    .flow .node .n { font-size: 12px; color: var(--accent); font-weight: 700; }
+    .flow .arrow { align-self: center; color: var(--fg-soft); font-size: 20px; }
+    @media (max-width: 720px) { .flow .arrow { transform: rotate(90deg); width: 100%; text-align: center; } }
+
+    .steps { counter-reset: step; margin-top: 30px; display: grid; gap: 16px; }
+    .step { display: grid; grid-template-columns: 44px 1fr; gap: 16px; align-items: start; }
+    .step .num {
+      counter-increment: step; width: 40px; height: 40px; border-radius: 50%;
+      display: grid; place-items: center; font-weight: 800;
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+    .step .num::before { content: counter(step); }
+    .step h3 { margin: 6px 0 8px; font-size: 17px; }
+
+    pre.block {
+      background: var(--bg-term); color: var(--term-fg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-size: 13.5px; line-height: 1.7; margin: 0;
+    }
+    pre.block .p { color: var(--term-green); } pre.block .c { color: var(--term-cyan); } pre.block .d { color: var(--term-dim); }
+
+    /* CLI table */
+    .tablewrap { overflow-x: auto; margin-top: 28px; border: 1px solid var(--border); border-radius: var(--radius); }
+    table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-soft); }
+    tr:last-child td { border-bottom: none; }
+    td code { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+
+    /* Docs links */
+    .doclinks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
+    @media (max-width: 760px) { .doclinks { grid-template-columns: 1fr; } }
+    .doc { display: block; background: var(--bg-soft); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; color: inherit; }
+    .doc:hover { border-color: var(--accent); text-decoration: none; }
+    .doc h3 { margin: 0 0 6px; font-size: 16px; color: var(--accent-2); }
+    .doc p { margin: 0; color: var(--fg-soft); font-size: 14px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 0 56px; color: var(--fg-soft); font-size: 14px; }
+    footer .row { display: flex; flex-wrap: wrap; gap: 16px 26px; align-items: center; }
+    footer .spacer { flex: 1; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <span class="brand"><span class="glyph mono">&gt;_</span> bashdep</span>
+      <a class="navlink" href="#why">Why</a>
+      <a class="navlink" href="#what">Features</a>
+      <a class="navlink" href="#how">How it works</a>
+      <a class="navlink" href="#start">Quick start</a>
+      <a class="navlink" href="#docs">Docs</a>
+      <span class="spacer"></span>
+      <button id="themeToggle" class="btn" type="button" aria-label="Toggle color theme" title="Toggle theme">◐</button>
+      <a class="btn" href="https://github.com/Chemaclass/bashdep">GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <span class="tag">zero runtime · Bash 3.2+ · just curl or wget</span>
+      <h1>Dependency management<br>for <span class="accent">bash</span> scripts.</h1>
+      <p class="lead">Declare URLs in a <code>.bashdep</code> file. bashdep downloads them
+        in parallel, verifies checksums, and keeps installs idempotent with a per-directory
+        lockfile — no registry, no daemon, no runtime.</p>
+      <div class="cta">
+        <a class="btn primary" href="#start">Get started</a>
+        <a class="btn" href="https://github.com/Chemaclass/bashdep/releases/latest">Latest release</a>
+      </div>
+      <div class="term" aria-hidden="true">
+        <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="name mono">install-dependencies.sh</span></div>
+        <pre class="mono"><span class="d"># vendor bashdep, then let it install your deps</span>
+<span class="p">$</span> curl -fsSLo lib/bashdep <span class="c">…/releases/latest/download/bashdep</span>
+<span class="p">$</span> ./lib/bashdep install
+Downloading 'bashunit'  <span class="d">→ lib/</span>
+Downloading 'create-pr' <span class="d">→ lib/</span>   <span class="d"># in parallel</span>
+Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
+<span class="c">&gt;</span> installed 3, skipped 0, failed 0</pre>
+      </div>
+    </div>
+
+    <section id="why">
+      <div class="wrap">
+        <p class="kicker">Why</p>
+        <h2 class="sec">Vendoring bash deps by hand doesn't scale</h2>
+        <p class="lead-2">Shell projects pull helper scripts with copy-pasted <code>curl</code> lines —
+          no pinning, no integrity, no idempotency, and no easy way to see what's installed.</p>
+        <div class="cols">
+          <div class="card bad">
+            <h3>✗ Hand-rolled</h3>
+            <ul>
+              <li>Re-downloads on every run, or never updates</li>
+              <li>No record of what came from where</li>
+              <li>No checksum — you trust whatever the URL served</li>
+              <li>Serial downloads, one slow host stalls them all</li>
+              <li>Dev-only tools mixed in with runtime deps</li>
+            </ul>
+          </div>
+          <div class="card good">
+            <h3>✓ With bashdep</h3>
+            <ul>
+              <li>Idempotent per source URL via <code>.bashdep.lock</code></li>
+              <li>The lockfile records every file's origin</li>
+              <li>Opt-in <code>#sha256=</code> integrity verification</li>
+              <li>Parallel downloads, tunable with <code>BASHDEP_JOBS</code></li>
+              <li><code>@dev</code> suffix routes tools to <code>lib/dev/</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="what">
+      <div class="wrap">
+        <p class="kicker">What you get</p>
+        <h2 class="sec">Small surface, real ergonomics</h2>
+        <p class="lead-2">One ~800-line script. The only things it calls at runtime are
+          <code>curl</code>/<code>wget</code>, <code>awk</code>, and POSIX builtins.</p>
+        <div class="grid">
+          <div class="feat"><div class="ic">🔒</div><h3>Idempotent lockfile</h3><p>Per-directory <code>.bashdep.lock</code> records each URL; re-runs skip unchanged deps, a URL bump re-downloads only that entry.</p></div>
+          <div class="feat"><div class="ic">⚡</div><h3>Parallel downloads</h3><p>Fetch concurrently (default 4, set <code>BASHDEP_JOBS</code>). Lockfile writes are batched into one atomic rewrite.</p></div>
+          <div class="feat"><div class="ic">🛡️</div><h3>Checksum verification</h3><p>Append <code>#sha256=&lt;hex&gt;</code> to any URL; a mismatch fails the install and leaves no file or lockfile entry.</p></div>
+          <div class="feat"><div class="ic">🧩</div><h3>Dev / prod split</h3><p>The <code>@dev</code> suffix routes a dependency to <code>lib/dev/</code>, keeping runtime and tooling apart.</p></div>
+          <div class="feat"><div class="ic">🔁</div><h3>curl or wget</h3><p>Uses whichever is installed, preferring <code>curl</code> and falling back to <code>wget</code> automatically.</p></div>
+          <div class="feat"><div class="ic">⌨️</div><h3>CLI + completion</h3><p>Run it as a command or source it as a library. Ships <code>bash</code>/<code>zsh</code> tab completion.</p></div>
+          <div class="feat"><div class="ic">🩺</div><h3>Lifecycle tools</h3><p><code>list</code>, <code>uninstall</code>, <code>clean</code>, and <code>doctor</code> to audit and repair lockfile / filesystem drift.</p></div>
+          <div class="feat"><div class="ic">🧪</div><h3>CI-friendly</h3><p>Every command returns a meaningful, capped count — gate a pipeline on <code>doctor</code> or <code>install</code> directly.</p></div>
+          <div class="feat"><div class="ic">🐚</div><h3>Bash 3.2+</h3><p>Runs on the macOS default bash and Linux bash 4+. No associative arrays, no external deps to install.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="wrap">
+        <p class="kicker">How it works</p>
+        <h2 class="sec">Declare → install → locked</h2>
+        <p class="lead-2">A single <code>install</code> classifies each entry, downloads them in
+          parallel, verifies any pins, then writes one lockfile per directory.</p>
+        <div class="flow" aria-label="install pipeline">
+          <div class="node"><div class="n">.bashdep</div><div class="t">Declare</div><div class="s">URLs, optional <code>@dev</code> / <code>#sha256=</code></div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="n">classify</div><div class="t">Route</div><div class="s">pick dir, strip annotations</div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="n">×N jobs</div><div class="t">Download</div><div class="s">parallel curl / wget</div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="n">sha256</div><div class="t">Verify</div><div class="s">reject on mismatch</div></div>
+          <div class="arrow">→</div>
+          <div class="node"><div class="n">.lock</div><div class="t">Record</div><div class="s">one atomic rewrite / dir</div></div>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="num"></div>
+            <div>
+              <h3>Vendor bashdep</h3>
+              <pre class="block mono"><span class="p">$</span> mkdir -p lib
+<span class="p">$</span> curl -fsSLo lib/bashdep <span class="c">…/releases/latest/download/bashdep</span>
+<span class="p">$</span> chmod +x lib/bashdep</pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num"></div>
+            <div>
+              <h3>Declare your <code>.bashdep</code></h3>
+              <pre class="block mono"><span class="d"># one URL per line · # comments · @dev · #sha256=</span>
+https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://example.com/dev-tool.sh<span class="c">@dev</span>
+https://example.com/pinned.sh<span class="c">#sha256=e3b0c44298fc1c149afbf…</span></pre>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num"></div>
+            <div>
+              <h3>Install — and commit the lockfile</h3>
+              <pre class="block mono"><span class="p">$</span> ./lib/bashdep install
+<span class="c">&gt;</span> installed 3, skipped 0, failed 0
+<span class="p">$</span> git add .bashdep.lock   <span class="d"># pin versions for collaborators</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="wrap">
+        <p class="kicker">Quick start</p>
+        <h2 class="sec">Two ways to drive it</h2>
+        <div class="cols">
+          <div>
+            <h3>As a CLI</h3>
+            <pre class="block mono"><span class="p">$</span> ./lib/bashdep install      <span class="d"># from ./.bashdep</span>
+<span class="p">$</span> ./lib/bashdep list         <span class="d"># what's installed</span>
+<span class="p">$</span> ./lib/bashdep doctor       <span class="d"># detect drift</span>
+<span class="p">$</span> ./lib/bashdep clean --dry-run
+<span class="p">$</span> source &lt;(./lib/bashdep completion bash)</pre>
+          </div>
+          <div>
+            <h3>As a sourced library</h3>
+            <pre class="block mono"><span class="d">#!/bin/bash</span>
+set -euo pipefail
+
+source lib/bashdep
+bashdep::setup dir=<span class="c">"vendor"</span> dev-dir=<span class="c">"local/dev"</span>
+bashdep::install_from   <span class="d"># reads ./.bashdep</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cli">
+      <div class="wrap">
+        <p class="kicker">Reference</p>
+        <h2 class="sec">CLI at a glance</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><code>install [url…]</code></td><td>Install given URLs, or read them from <code>.bashdep</code></td></tr>
+              <tr><td><code>list [dir…]</code></td><td>List installed dependencies (path + source URL)</td></tr>
+              <tr><td><code>uninstall &lt;name…&gt;</code></td><td>Remove deps and their lockfile entries</td></tr>
+              <tr><td><code>clean</code></td><td>Remove files not recorded in the lockfile</td></tr>
+              <tr><td><code>doctor</code></td><td>Report lockfile / filesystem inconsistencies</td></tr>
+              <tr><td><code>self-update [ref]</code></td><td>Update bashdep itself from upstream</td></tr>
+              <tr><td><code>completion [bash|zsh]</code></td><td>Print a shell completion script</td></tr>
+              <tr><td><code>version</code></td><td>Print the bashdep version</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="lead-2" style="margin-top:18px">Flags: <code>--dir</code>, <code>--dev-dir</code>, <code>--file</code>,
+          <code>--force</code>, <code>--dry-run</code>, <code>--silent</code>, <code>--verbose</code>, <code>--version</code>.</p>
+      </div>
+    </section>
+
+    <section id="docs">
+      <div class="wrap">
+        <p class="kicker">Learn more</p>
+        <h2 class="sec">Documentation</h2>
+        <div class="doclinks">
+          <a class="doc" href="https://github.com/Chemaclass/bashdep/blob/main/docs/api.md"><h3>API reference →</h3><p>The CLI plus every <code>bashdep::</code> function.</p></a>
+          <a class="doc" href="https://github.com/Chemaclass/bashdep/blob/main/docs/behavior.md"><h3>Behavior →</h3><p>Lockfile rules, checksums, parallelism, error handling.</p></a>
+          <a class="doc" href="https://github.com/Chemaclass/bashdep/blob/main/docs/releasing.md"><h3>Releasing →</h3><p>How maintainers cut a tagged release.</p></a>
+          <a class="doc" href="https://github.com/Chemaclass/bashdep/blob/main/.github/CONTRIBUTING.md"><h3>Contributing →</h3><p>Project layout, toolchain, test conventions.</p></a>
+          <a class="doc" href="https://github.com/Chemaclass/bashdep/blob/main/CHANGELOG.md"><h3>Changelog →</h3><p>What changed in each release.</p></a>
+          <a class="doc" href="https://github.com/Chemaclass/bashdep"><h3>Source →</h3><p>One script, a test suite, and a release pipeline.</p></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap row">
+      <span class="brand"><span class="glyph mono">&gt;_</span> bashdep</span>
+      <span class="spacer"></span>
+      <a href="https://github.com/Chemaclass/bashdep">GitHub</a>
+      <a href="https://github.com/Chemaclass/bashdep/releases">Releases</a>
+      <a href="https://github.com/Chemaclass/bashdep/blob/main/LICENSE">MIT License</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var key = "bashdep-theme";
+      var saved = null;
+      try { saved = localStorage.getItem(key); } catch (e) {}
+      if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
+      var btn = document.getElementById("themeToggle");
+      btn.addEventListener("click", function () {
+        var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var current = root.getAttribute("data-theme") || (dark ? "dark" : "light");
+        var next = current === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem(key, next); } catch (e) {}
+      });
+    })();
+  </script>
+</body>
+</html>
