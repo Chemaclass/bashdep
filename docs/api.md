@@ -207,5 +207,5 @@ source <(bashdep completion bash)   # or: bashdep completion zsh
 Print the bashdep version.
 
 ```bash
-bashdep::version  # e.g. 0.6.0
+bashdep::version  # prints the version string, e.g. 0.7.0
 ```
