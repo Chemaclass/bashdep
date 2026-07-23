@@ -8,6 +8,7 @@ skip. For function signatures and the CLI see the
 - [Dev dependencies](#dev-dependencies)
 - [Checksum verification](#checksum-verification-opt-in)
 - [Error handling](#error-handling)
+- [Gotchas](#gotchas)
 
 ## Lockfile and idempotency
 
@@ -102,3 +103,21 @@ set -euo pipefail
 source lib/bashdep
 bashdep::install_from .bashdep || exit $?
 ```
+
+## Gotchas
+
+Known boundaries of the flat, URL-driven model — by design, not bugs:
+
+- **A dependency's identity is its filename** — the last path segment of
+  the URL. Two URLs ending in the same basename (`.../v1/util.sh` and
+  `.../v2/util.sh`) resolve to the same file in the same directory: the
+  second overwrites the first and the lockfile keeps a single entry.
+  Disambiguate by routing one to `@dev`, pointing it at another `dir`, or
+  renaming upstream.
+- **The lockfile pins the source URL, not a checksum.** Idempotency and
+  `doctor` drift detection compare URLs; integrity is enforced only when
+  you add an explicit `#sha256=` annotation, which is re-checked on every
+  download.
+- **No transitive resolution.** bashdep installs exactly the URLs you
+  list — a dependency cannot declare its own dependencies. List the full
+  set yourself.

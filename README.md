@@ -113,7 +113,7 @@ names not found. See [Behavior](docs/behavior.md#error-handling).
   `install_from`, `setup`, `list`, `uninstall`, `clean`, `doctor`,
   `self_update`, `completion`, `version`.
 - [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies,
-  checksum verification, parallel downloads, error handling.
+  checksum verification, parallel downloads, error handling, gotchas.
 - [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged
   release with `release.sh`.
 - [**Contributing**](.github/CONTRIBUTING.md) — project layout, test
