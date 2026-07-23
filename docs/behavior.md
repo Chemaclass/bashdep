@@ -6,6 +6,7 @@ skip. For function signatures and the CLI see the
 
 - [Lockfile and idempotency](#lockfile-and-idempotency)
 - [Dev dependencies](#dev-dependencies)
+- [Checksum verification](#checksum-verification-opt-in)
 - [Error handling](#error-handling)
 
 ## Lockfile and idempotency
@@ -78,9 +79,8 @@ verified (the default).
   non-negative integer; a non-numeric or otherwise invalid value is
   rejected with a warning and the default of `4` is used. It continues
   past failed downloads and returns the failure count (capped at 255).
-  Lockfile
-  writes are batched into a single rewrite per directory after all
-  downloads finish, so concurrency never corrupts the lockfile.
+  Lockfile writes are batched into a single rewrite per directory after
+  all downloads finish, so concurrency never corrupts the lockfile.
 - `bashdep::install_from` returns `1` if the file (default: `.bashdep`)
   is missing or unreadable.
 - `bashdep::setup` returns `1` on unknown params or non-boolean values

@@ -12,6 +12,7 @@ dev-dependency routing, and error semantics see [Behavior](behavior.md).
 - [`bashdep::self_update`](#bashdepself_update)
 - [`bashdep::setup`](#bashdepsetup)
 - [`bashdep::list`](#bashdeplist)
+- [`bashdep::completion`](#bashdepcompletion)
 - [`bashdep::version`](#bashdepversion)
 
 ## CLI
@@ -63,8 +64,10 @@ bashdep::install "${DEPENDENCIES[@]}"
 Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`).
 Set `BASHDEP_JOBS=1` for sequential downloads. `BASHDEP_JOBS` must be a
 non-negative integer; any other value is rejected with a warning and the
-default of `4` is used. Returns the number of failed downloads (0 on
-success, capped at 255).
+default of `4` is used. Append `#sha256=<hex>` to a URL to verify the
+download (see [Checksum verification](behavior.md#checksum-verification-opt-in)).
+Prints an `installed X, skipped Y, failed Z` summary (unless `silent`)
+and returns the number of failed downloads (0 on success, capped at 255).
 
 ## `bashdep::install_from`
 
@@ -190,10 +193,19 @@ lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.
 
 Pipe into `awk` / `cut` for audit and diff tooling.
 
+## `bashdep::completion`
+
+Print a shell completion script for the CLI commands and flags. Accepts
+`bash` (default) or `zsh`; returns `1` for any other shell.
+
+```bash
+source <(bashdep completion bash)   # or: bashdep completion zsh
+```
+
 ## `bashdep::version`
 
 Print the bashdep version.
 
 ```bash
-bashdep::version  # e.g. 0.4.2
+bashdep::version  # e.g. 0.6.0
 ```

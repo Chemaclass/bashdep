@@ -30,12 +30,14 @@ chmod +x lib/bashdep
 ```
 
 **2. Declare your dependencies in a `.bashdep` file** (one URL per
-line; `#` comments allowed; `@dev` suffix routes to `lib/dev/`):
+line; `#` comments allowed; `@dev` suffix routes to `lib/dev/`;
+optional `#sha256=<hex>` verifies the download):
 
 ```
 https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
 https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
+https://example.com/pinned.sh#sha256=e3b0c44298fc1c149afbf4c8996fb924...
 ```
 
 **3. Install:**
@@ -93,19 +95,25 @@ names not found. See [Behavior](docs/behavior.md#error-handling).
 ## Why bashdep?
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
+- **Parallel downloads** — dependencies fetch concurrently (tune with
+  `BASHDEP_JOBS`, default 4; `BASHDEP_JOBS=1` for sequential).
+- **Optional integrity checks** — pin a dependency with `#sha256=<hex>`
+  and bashdep verifies the download before recording it.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
+- **`curl` or `wget`** — uses whichever is installed.
 - **File-driven, array-driven, or CLI** — `install_from`, `install`, or
-  `./lib/bashdep <command>`.
+  `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
 - **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`,
-  `self_update`.
+  `self_update`, `completion`.
 - **Modes** — `force`, `dry-run`, `silent`, `verbose`.
 
 ## Documentation
 
-- [**API reference**](docs/api.md) — `install`, `install_from`, `setup`,
-  `list`, `uninstall`, `clean`, `doctor`, `self_update`, `version`.
+- [**API reference**](docs/api.md) — the CLI plus `install`,
+  `install_from`, `setup`, `list`, `uninstall`, `clean`, `doctor`,
+  `self_update`, `completion`, `version`.
 - [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies,
-  error handling.
+  checksum verification, parallel downloads, error handling.
 - [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged
   release with `release.sh`.
 - [**Contributing**](.github/CONTRIBUTING.md) — project layout, test
@@ -115,7 +123,8 @@ names not found. See [Behavior](docs/behavior.md#error-handling).
 
 ```bash
 make deps              # Install bashunit (test runner)
-make test              # Run the suite
+make check             # Full gate: test + ShellCheck + editorconfig
+make test              # Run the suite (BASHUNIT_FLAGS=--simple for quiet)
 make sa                # ShellCheck
 make lint              # editorconfig-checker
 make pre_commit/install
