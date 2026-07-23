@@ -90,6 +90,18 @@ function test_bashdep_classify_dep_no_annotation_leaves_sha_empty() {
   assert_empty "$BASHDEP_DEP_SHA"
 }
 
+function test_bashdep_classify_dep_rejects_empty_sha_annotation() {
+  BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
+  bashdep::_classify_dep "https://example.com/foo#sha256=" 2>/dev/null
+  assert_general_error
+}
+
+function test_bashdep_classify_dep_rejects_non_hex_sha_annotation() {
+  BASHDEP_DIR=lib BASHDEP_DEV_DIR=lib/dev BASHDEP_DEV_SUFFIX=@dev
+  bashdep::_classify_dep "https://example.com/foo#sha256=xyz" 2>/dev/null
+  assert_general_error
+}
+
 function test_bashdep_resolve_jobs_accepts_positive_integer() {
   BASHDEP_JOBS=8
   assert_equals "8" "$(bashdep::_resolve_jobs)"
@@ -771,6 +783,16 @@ function test_bashdep_install_rejects_bad_checksum_annotation() {
   # shellcheck disable=SC2016
   mock curl 'printf "hello\n" > "$3"'
   bashdep::install "https://example.com/tool#sha256=wrong" >/dev/null 2>&1
+  assert_equals 1 "$?"
+  assert_file_not_exists "$TEST_DIR/tool"
+}
+
+function test_bashdep_install_rejects_empty_checksum_annotation() {
+  BASHDEP_DIR="$TEST_DIR"
+  BASHDEP_JOBS=1
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  bashdep::install "https://example.com/tool#sha256=" >/dev/null 2>&1
   assert_equals 1 "$?"
   assert_file_not_exists "$TEST_DIR/tool"
 }

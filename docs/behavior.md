@@ -66,8 +66,10 @@ https://example.com/dev-tool.sh@dev#sha256=2c26b46b68ffc68ff99b453c...
 The annotation is stripped before download (`curl`/`wget` never see it)
 and can combine with the `@dev` suffix. On a mismatch — or when neither
 `shasum` nor `sha256sum` is available — the download fails, the file is
-removed, and no lockfile entry is written. Without the annotation,
-nothing is verified (the default).
+removed, and no lockfile entry is written. A present-but-empty or
+non-hex annotation (e.g. `#sha256=`) is rejected before download rather
+than silently skipping the check. Without the annotation, nothing is
+verified (the default).
 
 ## Error handling
 
