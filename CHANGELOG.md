@@ -10,6 +10,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   `templates/release.sh` engine and a documented `release.conf.example`.
   Other bash projects can copy these to automate GitHub releases. bashdep
   now **dogfoods** the engine via its own `release.conf`.
+- `templates/build.sh`: an amalgamator that inlines static, top-level
+  `source`/`.` includes into a single self-contained executable — a
+  release asset for multi-file bash projects. Dynamic includes
+  (`source "$var"`, indented sources) are left untouched by design.
 
 ### Changed
 
