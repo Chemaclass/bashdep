@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASHDEP_VERSION="0.8.0"
+BASHDEP_VERSION="0.8.1"
 BASHDEP_DIR="lib"
 BASHDEP_DEV_DIR="lib/dev"
 BASHDEP_DEV_SUFFIX="@dev"
