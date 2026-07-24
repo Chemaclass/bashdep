@@ -5,6 +5,13 @@ GitHub release with two downloadable assets: the `bashdep` script and a
 `checksum` (sha256) to verify it. The whole flow is automated by
 `release.sh`.
 
+The root `release.sh` is a thin wrapper: it runs the reusable, project-
+agnostic engine in [`templates/release.sh`](../templates/release.sh),
+configured by [`release.conf`](../release.conf) (version read/write, gate,
+assets, release notes). bashdep **dogfoods** the same template it offers
+other projects — see [templates/README.md](../templates/README.md) to
+reuse it in your own repo.
+
 ## Cutting a release
 
 Prerequisites:
@@ -40,11 +47,14 @@ make release 0.4.0                   # via make, explicit
 The script:
 
 1. Validates the version is semver and greater than the current, that the
-    required tooling is present (`git`, `awk`, `sed`, `make`, `shellcheck`,
-    `ec`, `shasum`/`sha256sum`, and `gh` unless `--no-gh`), that you're on
-    `main` with a clean tree, that the tag doesn't exist, and that
-    `[Unreleased]` actually has content to ship.
-2. Bumps `BASHDEP_VERSION` in the `bashdep` script.
+    engine's own tooling is present (`git`, `awk`, and `gh` unless
+    `--no-gh`), that you're on `main` with a clean tree, that the tag
+    doesn't exist, and that `[Unreleased]` actually has content to ship.
+    bashdep's gate (`make test sa lint`, from `release.conf`) additionally
+    needs `make`, `shellcheck`, and `ec`; the checksum step needs
+    `shasum`/`sha256sum`.
+2. Bumps `BASHDEP_VERSION` in the `bashdep` script (via the config's
+    `release_version_write`).
 3. Rolls `CHANGELOG.md`: renames `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`,
     adds a fresh empty `[Unreleased]` section, and refreshes the compare
     links at the bottom.

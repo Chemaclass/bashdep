@@ -1,0 +1,58 @@
+# shellcheck shell=bash
+#
+# release.conf — configuration for templates/release.sh.
+# Copy this to your repo root as `release.conf` and adjust.
+#
+# REQUIRED: RELEASE_COMMIT_PATHS, release_version_read, release_version_write.
+# Everything else has a sensible default (shown commented).
+
+# owner/repo on GitHub. Optional — derived from `git remote` when unset.
+# RELEASE_REPO="owner/repo"
+
+# Branch releases must be cut from. Default: main.
+# RELEASE_MAIN_BRANCH="main"
+
+# Command run as the pre-release gate. Empty string skips it.
+# Default: "make test".
+# RELEASE_GATE="make test"
+
+# CHANGELOG path (Keep a Changelog format, with a "## [Unreleased]"
+# section and "[Unreleased]:" compare link). Empty string skips rolling.
+# Default: CHANGELOG.md.
+# RELEASE_CHANGELOG="CHANGELOG.md"
+
+# Files the release commit stages. REQUIRED — must include your version
+# file and (when used) the CHANGELOG.
+RELEASE_COMMIT_PATHS=(VERSION CHANGELOG.md)
+
+# Assets uploaded to the GitHub release (produced by release_build).
+# Default: none — a tag-only release.
+# RELEASE_ASSETS=(dist/mytool dist/checksum)
+
+# Build directory a typical release_build removes/creates. Default: dist.
+# RELEASE_DIST_DIR="dist"
+
+# REQUIRED: echo the current version to stdout.
+release_version_read() {
+  cat VERSION
+}
+
+# REQUIRED: write $1 as the new version.
+release_version_write() {
+  printf '%s\n' "$1" > VERSION
+}
+
+# Optional: produce the RELEASE_ASSETS (e.g. bundle a single-file script,
+# write a checksum). `sha256_of <file>` is provided by templates/release.sh
+# and prints "<hash>  <basename>".
+# release_build() {
+#   rm -rf dist && mkdir -p dist
+#   ./templates/build.sh src/main.sh > dist/mytool && chmod +x dist/mytool
+#   sha256_of dist/mytool > dist/checksum
+# }
+
+# Optional: GitHub release body ($VERSION is available). Falls back to a
+# generic "See the CHANGELOG" line when omitted.
+# release_notes() {
+#   echo "See the CHANGELOG for details."
+# }
