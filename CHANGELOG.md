@@ -6,7 +6,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- Reusable release tooling under `templates/`: a generic, config-driven
+  `templates/release.sh` engine and a documented `release.conf.example`.
+  Other bash projects can copy these to automate GitHub releases. bashdep
+  now **dogfoods** the engine via its own `release.conf`.
+
 ### Changed
+
+- The root `release.sh` is now a thin wrapper around
+  `templates/release.sh` configured by `release.conf`; behavior and flags
+  are unchanged. Project-specific bits (version read/write, gate, assets,
+  release notes) live in `release.conf`.
 
 ### Fixed
 
