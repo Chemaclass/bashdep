@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.8.0] - 2026-07-24
+
+### Added
+
 - Reusable release tooling under `templates/`: a generic, config-driven
   `templates/release.sh` engine and a documented `release.conf.example`.
   Other bash projects can copy these to automate GitHub releases. bashdep
@@ -174,7 +182,8 @@ download URLs return 404. Git tags are preserved for history.
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/Chemaclass/bashdep/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/Chemaclass/bashdep/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/Chemaclass/bashdep/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Chemaclass/bashdep/compare/0.4.2...0.5.0
