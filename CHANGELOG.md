@@ -4,11 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
-### Added
-
 ### Changed
 
-### Fixed
+- CHANGELOG housekeeping: dropped empty section headings from released
+  entries for a cleaner, consistent history.
 
 ## [0.8.0] - 2026-07-24
 
@@ -29,8 +28,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   `templates/release.sh` configured by `release.conf`; behavior and flags
   are unchanged. Project-specific bits (version read/write, gate, assets,
   release notes) live in `release.conf`.
-
-### Fixed
 
 ## [0.7.0] - 2026-07-23
 
@@ -61,8 +58,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 - Downloads pass `--` before the URL (curl and wget) so a URL beginning
   with `-` can never be misparsed as an option.
-
-### Fixed
 
 ## [0.6.0] - 2026-07-22
 
