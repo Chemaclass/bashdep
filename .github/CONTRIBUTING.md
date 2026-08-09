@@ -1,12 +1,10 @@
 # Contributing
 
-Thanks for considering a contribution. This guide covers project layout,
-how to run the suite, and the conventions we follow.
+Thanks for considering a contribution. This guide covers project layout, how to run the suite, and the conventions we follow.
 
 ## Code of Conduct
 
-This project follows a [Contributor Code of Conduct](CODE_OF_CONDUCT.md).
-By participating you agree to abide by its terms.
+This project follows a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating you agree to abide by its terms.
 
 ## License
 
@@ -25,9 +23,7 @@ docs/                       # API + behavior + releasing reference
 Makefile                    # test / sa / lint / deps / release / pre_commit/install
 ```
 
-The codebase is intentionally small and zero-runtime: only `curl` (or
-`wget`), `awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run
-on bash 3.2+ (default macOS) and bash 4+ (Linux CI).
+The codebase is intentionally small and zero-runtime: only `curl` (or `wget`), `awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run on bash 3.2+ (default macOS) and bash 4+ (Linux CI).
 
 ## Toolchain
 
@@ -35,12 +31,11 @@ Install these to run the full gate locally:
 
 | Tool | Purpose | Install |
 | --- | --- | --- |
-| [bashunit](https://bashunit.typeddevs.com/) `0.17.0` | Test runner | `make deps` |
+| [bashunit](https://bashunit.typeddevs.com/) `0.45.0` | Test runner | `make deps` |
 | [ShellCheck](https://www.shellcheck.net/) | Static analysis (`make sa`) | `brew install shellcheck` / `apt install shellcheck` |
 | [editorconfig-checker](https://editorconfig-checker.github.io/) | Whitespace/indent lint (`make lint`) | `brew install editorconfig-checker` |
 
-`make lint` finds the linter under either the `ec` or
-`editorconfig-checker` binary name.
+`make lint` finds the linter under either the `ec` or `editorconfig-checker` binary name.
 
 ## Workflow for pull requests
 
@@ -49,13 +44,9 @@ Install these to run the full gate locally:
 3. Run `make check` (test + ShellCheck + editorconfig).
 4. Open the PR with a short summary and a test plan.
 
-Prefer commit-time enforcement? Either `make pre_commit/install` (a
-plain git hook) or, with the [pre-commit](https://pre-commit.com)
-framework, `pip install pre-commit && pre-commit install` — the
-committed `.pre-commit-config.yaml` runs the same Makefile gates.
+Prefer commit-time enforcement? Either `make pre_commit/install` (a plain git hook) or, with the [pre-commit](https://pre-commit.com) framework, `pip install pre-commit && pre-commit install` — the committed `.pre-commit-config.yaml` runs the same Makefile gates.
 
-Set your git `user.name` / `user.email` so commit history stays clean:
-see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
+Set your git `user.name` / `user.email` so commit history stays clean: see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
 
 ## Bug reports
 
@@ -86,11 +77,8 @@ Conventions in `tests/unit/bashdep_test.sh`:
 
 - One test per behavior. Names describe the assertion (`test_bashdep_…`).
 - Pure-logic tests (no filesystem) sit at the top of the file.
-- Filesystem tests use `$TEST_DIR` (a `mktemp -d` set up in `set_up`,
-  cleaned in `tear_down`). Use the `_seed_lock` / `_seed_installed`
-  helpers to scaffold lockfile fixtures.
-- Snapshot tests keep hardcoded `/tmp/test_<name>` paths because the
-  snapshot embeds the path. Don't migrate those to `$TEST_DIR`.
+- Filesystem tests use `$TEST_DIR` (a `mktemp -d` set up in `set_up`, cleaned in `tear_down`). Use the `_seed_lock` / `_seed_installed` helpers to scaffold lockfile fixtures.
+- Snapshot tests keep hardcoded `/tmp/test_<name>` paths because the snapshot embeds the path. Don't migrate those to `$TEST_DIR`.
 
 ## Coding guidelines
 
@@ -102,8 +90,7 @@ Install: <https://github.com/koalaman/shellcheck#installing>
 make sa
 ```
 
-`make sa` discovers scripts via `find` and matches CI scope: `bashdep`,
-`bin/pre-commit`, and every `*.sh` outside `vendor/`, `lib/`, `local/`.
+`make sa` discovers scripts via `find` and matches CI scope: `bashdep`, `bin/pre-commit`, and every `*.sh` outside `vendor/`, `lib/`, `local/`.
 
 ### editorconfig-checker
 
@@ -125,8 +112,4 @@ Runs `make pre_commit/run` (test + sa + lint) on every commit.
 
 ### Style
 
-We follow Google's
-[Shell Style Guide](https://google.github.io/styleguide/shellguide.html)
-where it doesn't conflict with this repo's conventions:
-`function name() { … }`, snake_case, and the `bashdep::` namespace
-prefix on every public function.
+We follow Google's [Shell Style Guide](https://google.github.io/styleguide/shellguide.html) where it doesn't conflict with this repo's conventions: `function name() { … }`, snake_case, and the `bashdep::` namespace prefix on every public function.

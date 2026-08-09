@@ -1,16 +1,8 @@
 # Releasing
 
-bashdep ships a single `bashdep` script. Releases are git tags + a
-GitHub release with two downloadable assets: the `bashdep` script and a
-`checksum` (sha256) to verify it. The whole flow is automated by
-`release.sh`.
+bashdep ships a single `bashdep` script. Releases are git tags + a GitHub release with two downloadable assets: the `bashdep` script and a `checksum` (sha256) to verify it. The whole flow is automated by `release.sh`.
 
-The root `release.sh` is a thin wrapper: it runs the reusable, project-
-agnostic engine in [`templates/release.sh`](../templates/release.sh),
-configured by [`release.conf`](../release.conf) (version read/write, gate,
-assets, release notes). bashdep **dogfoods** the same template it offers
-other projects — see [templates/README.md](../templates/README.md) to
-reuse it in your own repo.
+The root `release.sh` is a thin wrapper: it runs the reusable, project- agnostic engine in [`templates/release.sh`](../templates/release.sh), configured by [`release.conf`](../release.conf) (version read/write, gate, assets, release notes). bashdep **dogfoods** the same template it offers other projects — see [templates/README.md](../templates/README.md) to reuse it in your own repo.
 
 ## Cutting a release
 
@@ -18,12 +10,9 @@ Prerequisites:
 
 - On `main`, working tree clean.
 - `gh` CLI authenticated (`gh auth status`).
-- ShellCheck and editorconfig-checker installed (release script gates
-  on them).
+- ShellCheck and editorconfig-checker installed (release script gates on them).
 
-By default, the script auto-bumps the **minor** version (e.g. `0.3.0` →
-`0.4.0`). Pass an explicit version to override, or use `--major` /
-`--patch` for a different bump level.
+By default, the script auto-bumps the **minor** version (e.g. `0.3.0` → `0.4.0`). Pass an explicit version to override, or use `--major` / `--patch` for a different bump level.
 
 Preview first (idempotent — touches nothing):
 
@@ -66,12 +55,9 @@ The script:
 8. Creates the GitHub release via `gh release create`, uploads `bashdep`
     + `checksum`, and verifies both assets attached.
 
-The release URL is printed at the end. If any step **before the commit**
-fails, the script auto-reverts the file mutations and removes `dist/`;
-after the commit it prints the exact recovery command instead.
+The release URL is printed at the end. If any step **before the commit** fails, the script auto-reverts the file mutations and removes `dist/`; after the commit it prints the exact recovery command instead.
 
-The `dist/` build directory is git-ignored — it is a release artifact,
-not source.
+The `dist/` build directory is git-ignored — it is a release artifact, not source.
 
 ## Flags
 
