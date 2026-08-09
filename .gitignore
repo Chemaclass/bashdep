@@ -15,3 +15,6 @@ vendor/
 
 # release build output
 dist/
+
+# bashunit run state (last-failed cache)
+.bashunit/
