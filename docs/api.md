@@ -40,9 +40,9 @@ source <(bashdep completion bash)
 ```
 
 Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters:
-`--dir=DIR`, `--dev-dir=DIR`, `--force`, `--dry-run`, `--silent`,
-`--verbose`. `install` also accepts `--file=FILE` to point at a
-dependency file other than `.bashdep`.
+`--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`,
+`--silent`, `--verbose`. `install` also accepts `--file=FILE` to point
+at a dependency file other than `.bashdep`.
 
 `--version` prints the version and `-h`/`--help` prints usage. Exit codes
 match the underlying function's return value (e.g. `doctor` exits with
@@ -61,8 +61,9 @@ DEPENDENCIES=(
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`).
-Set `BASHDEP_JOBS=1` for sequential downloads. `BASHDEP_JOBS` must be a
+Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`),
+which `bashdep::setup jobs=N` and the CLI's `--jobs=N` also set. Use `1`
+for sequential downloads. `BASHDEP_JOBS` must be a
 non-negative integer; any other value is rejected with a warning and the
 default of `4` is used. Append `#sha256=<hex>` to a URL to verify the
 download (see [Checksum verification](behavior.md#checksum-verification-opt-in)).
@@ -166,6 +167,7 @@ Configure defaults before calling `install`. All parameters are optional.
 | --------- | ------ | --------- | ------------------------------------------------------ |
 | `dir`     | string | `lib`     | Destination for normal dependencies.                   |
 | `dev-dir` | string | `lib/dev` | Destination for dev dependencies (URLs ending `@dev`). |
+| `jobs`    | int    | `4`       | Concurrent downloads (`1` = sequential); sets `BASHDEP_JOBS`. |
 | `silent`  | bool   | `false`   | Suppress progress output.                              |
 | `force`   | bool   | `false`   | Re-download even when the file already exists.         |
 | `dry-run` | bool   | `false`   | Preview actions without writing to disk.               |
@@ -176,7 +178,10 @@ bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
 ```
 
 Invalid values (unknown param, non-boolean for `silent`/`force`) cause
-`setup` to print an error to stderr and return `1`.
+`setup` to print an error to stderr and return `1`. `jobs` is not
+validated here — like the `BASHDEP_JOBS` environment variable it is
+checked when `install` runs, where a non-integer warns and falls back
+to `4`.
 
 ## `bashdep::list`
 

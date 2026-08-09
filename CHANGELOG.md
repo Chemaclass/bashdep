@@ -6,7 +6,32 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- Concurrency is now configurable without touching the environment:
+  `bashdep::setup jobs=N` and the CLI's `--jobs=N` both set
+  `BASHDEP_JOBS`. The flag is listed in `--help` and offered by the
+  `bash`/`zsh` completion scripts. Validation is unchanged — a
+  non-integer warns and falls back to `4` when `install` runs.
+
 ### Changed
+
+- `bashdep::_sha256` resolves `shasum`/`sha256sum` once per run (cached
+  in `BASHDEP_SHA_TOOL`) instead of re-probing on every call, mirroring
+  how `BASHDEP_DOWNLOADER` already pins `curl`/`wget` for a whole run, so
+  every checksum in a run is computed by the same tool. It also slices
+  the digest with parameter expansion, which keeps `awk` out of that
+  path. Measured as performance-neutral (150 digests: 1.51s before and
+  after) — this is a consistency change, not a speedup.
+- Development dependency: bashunit `0.17.0` → `0.45.0`, which cuts the
+  suite's runtime from ~27s to ~2.5s. bashunit moved its doubles to
+  `bashunit::mock` and changed the multi-argument form to append `"$@"`
+  to the mock body, which cannot express a body that reads positional
+  arguments; `tests/bootstrap.sh` now defines the `mock`/`unmock` helpers
+  the suite relies on.
+- CI actions pinned and bumped: `checkout@v7`, `cache@v6`,
+  `paths-filter@v4`, `configure-pages@v6`, `upload-pages-artifact@v5`,
+  `deploy-pages@v5`, and the two previously floating refs
+  (`action-shellcheck@master`, `action-editorconfig-checker@main`) now
+  pin to `2.0.0` and `v2.2.0` for reproducible runs.
 
 ### Fixed
 

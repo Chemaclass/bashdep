@@ -12,6 +12,7 @@ BASHDEP_FORCE=false
 BASHDEP_DRY_RUN=false
 BASHDEP_VERBOSE=false
 BASHDEP_DOWNLOADER=""
+BASHDEP_SHA_TOOL=""
 BASHDEP_LOCK_DEFER=false
 BASHDEP_LOCK_PENDING=()
 BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
@@ -69,11 +70,14 @@ function bashdep::self_update() {
 # Configure bashdep behavior.
 #
 # Usage:
-#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [silent=BOOL] [force=BOOL] [dry-run=BOOL]
+#   bashdep::setup [dir=DIR] [dev-dir=DEV_DIR] [jobs=N] [silent=BOOL] [force=BOOL] [dry-run=BOOL]
 #
 # Parameters:
 #       dir    - Default destination directory (default: lib).
 #   dev-dir    - Development destination directory (default: lib/dev).
+#   jobs       - Concurrent downloads, i.e. BASHDEP_JOBS (default: 4;
+#                1 for sequential). Validated when install runs: a
+#                non-integer warns and falls back to 4.
 #   silent     - Suppress progress output (default: false).
 #   force      - Re-download dependencies even if they already exist (default: false).
 #   dry-run    - Preview actions without downloading or writing the lockfile (default: false).
@@ -88,6 +92,7 @@ function bashdep::setup() {
     case $param in
       dir=*)       BASHDEP_DIR="${param#*=}"        ;;
       dev-dir=*)   BASHDEP_DEV_DIR="${param#*=}"    ;;
+      jobs=*)      BASHDEP_JOBS="${param#*=}"       ;;
       silent=*)    bashdep::_set_bool BASHDEP_SILENT  "${param#*=}" silent  || return 1 ;;
       force=*)     bashdep::_set_bool BASHDEP_FORCE   "${param#*=}" force   || return 1 ;;
       dry-run=*)   bashdep::_set_bool BASHDEP_DRY_RUN "${param#*=}" dry-run || return 1 ;;
@@ -498,16 +503,31 @@ function bashdep::_has_wget() { command -v wget >/dev/null 2>&1; }
 
 # Internal: print the SHA-256 hex of a file, portable across macOS
 # (shasum) and Linux (sha256sum). Returns 1 if neither tool is available.
+# The choice is resolved once per run (cached in BASHDEP_SHA_TOOL), mirroring
+# BASHDEP_DOWNLOADER: a batch install does not re-probe, and every checksum in
+# a run is computed by the same tool. The hex is cut with parameter expansion
+# so the path needs no awk.
 function bashdep::_sha256() {
-  local file=$1
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$file" | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$file" | awk '{print $1}'
-  else
-    echo "Error: need 'shasum' or 'sha256sum' to verify checksums." >&2
-    return 1
+  local file=$1 line
+  if [[ -z "$BASHDEP_SHA_TOOL" ]]; then
+    if command -v shasum >/dev/null 2>&1; then
+      BASHDEP_SHA_TOOL=shasum
+    elif command -v sha256sum >/dev/null 2>&1; then
+      BASHDEP_SHA_TOOL=sha256sum
+    else
+      BASHDEP_SHA_TOOL=none
+    fi
   fi
+
+  case $BASHDEP_SHA_TOOL in
+    shasum)    line=$(shasum -a 256 "$file") || return 1 ;;
+    sha256sum) line=$(sha256sum "$file") || return 1 ;;
+    *)
+      echo "Error: need 'shasum' or 'sha256sum' to verify checksums." >&2
+      return 1
+      ;;
+  esac
+  printf '%s\n' "${line%% *}"
 }
 
 # Internal: download $1 (url) into $2 (output path). Prefers curl and falls
@@ -587,6 +607,11 @@ function bashdep::_set_bool() {
 
 # Internal: read URL recorded in lockfile for a given filename.
 # Prints the URL on stdout (empty if absent or lockfile missing).
+#
+# This stays an awk pass rather than a pure-bash scan of the whole file:
+# bash pattern matching re-scans the lockfile on every lookup, which turns
+# an N-dependency install quadratic and overtakes the fork it saves at
+# roughly 50 entries.
 function bashdep::_lock_get() {
   local lock_file=$1 file_name=$2
   [[ -f "$lock_file" ]] || return 0
@@ -725,6 +750,7 @@ Options:
   --dir=DIR             Destination directory (default: lib)
   --dev-dir=DIR         Dev destination directory (default: lib/dev)
   --file=FILE           Dependency file for install (default: .bashdep)
+  --jobs=N              Concurrent downloads (default: 4, 1 = sequential)
   --force               Re-download even when already installed
   --dry-run             Preview actions without touching disk
   --silent              Suppress informational output
@@ -740,7 +766,7 @@ EOF
 function bashdep::completion() {
   local shell=${1:-bash}
   local commands="install list uninstall clean doctor self-update completion version help"
-  local flags="--dir --dev-dir --file --force --dry-run --silent --verbose --version --help"
+  local flags="--dir --dev-dir --file --jobs --force --dry-run --silent --verbose --version --help"
   case $shell in
     bash)
       cat <<EOF
@@ -796,6 +822,7 @@ function bashdep::main() {
       --verbose)   BASHDEP_VERBOSE=true ;;
       --dir=*)     BASHDEP_DIR="${arg#*=}" ;;
       --dev-dir=*) BASHDEP_DEV_DIR="${arg#*=}" ;;
+      --jobs=*)    BASHDEP_JOBS="${arg#*=}" ;;
       --file=*)    dep_file="${arg#*=}" ;;
       -*)
         echo "Error: Unknown option '$arg'" >&2

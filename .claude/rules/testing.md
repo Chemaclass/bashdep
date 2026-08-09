@@ -97,6 +97,24 @@ they keep hardcoded `/tmp/test_<name>` paths. Do **not** migrate them to
 - No real `release.sh` invocations from tests
 - Tests must be safe to run in any order
 
+## The `mock` / `unmock` helpers
+
+`mock` and `unmock` are defined by **this repo** in `tests/bootstrap.sh`,
+not by bashunit. bashunit >= 0.40 moved its doubles under
+`bashunit::mock` and made the multi-argument form append `"$@"` to the
+body, which cannot express a mock body that reads positional arguments —
+the shape this suite uses everywhere:
+
+```bash
+mock curl 'touch "$3"'          # body sees the real call's arguments
+mock bashdep::download_url "return 1"
+mock curl <<< "payload"         # no body: echo stdin instead
+```
+
+Each bashunit test runs in its own subshell, so mocks cannot leak between
+tests and need no registry — `unmock` is only for restoring a real
+command *within* a single test.
+
 ## Mocking `curl`
 
 bashdep's only network surface is `curl`. To test install paths without
