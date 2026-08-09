@@ -1,7 +1,6 @@
 # API reference
 
-Public functions exposed by `source lib/bashdep`. For lockfile rules,
-dev-dependency routing, and error semantics see [Behavior](behavior.md).
+Public functions exposed by `source lib/bashdep`. For lockfile rules, dev-dependency routing, and error semantics see [Behavior](behavior.md).
 
 - [CLI](#cli)
 - [`bashdep::install`](#bashdepinstall)
@@ -17,8 +16,7 @@ dev-dependency routing, and error semantics see [Behavior](behavior.md).
 
 ## CLI
 
-Every command is also available by executing the script directly —
-no `source` needed:
+Every command is also available by executing the script directly — no `source` needed:
 
 ```bash
 ./lib/bashdep install                      # install from ./.bashdep
@@ -32,22 +30,15 @@ no `source` needed:
 ./lib/bashdep --help
 ```
 
-Enable shell completion by sourcing the generated script, e.g. in
-`~/.bashrc`:
+Enable shell completion by sourcing the generated script, e.g. in `~/.bashrc`:
 
 ```bash
 source <(bashdep completion bash)
 ```
 
-Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters:
-`--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`,
-`--silent`, `--verbose`. `install` also accepts `--file=FILE` to point
-at a dependency file other than `.bashdep`.
+Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters: `--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`, `--silent`, `--verbose`. `install` also accepts `--file=FILE` to point at a dependency file other than `.bashdep`.
 
-`--version` prints the version and `-h`/`--help` prints usage. Exit codes
-match the underlying function's return value (e.g. `doctor` exits with
-the issue count), so the CLI drops into CI pipelines as-is. Sourcing the
-script never triggers the CLI.
+`--version` prints the version and `-h`/`--help` prints usage. Exit codes match the underlying function's return value (e.g. `doctor` exits with the issue count), so the CLI drops into CI pipelines as-is. Sourcing the script never triggers the CLI.
 
 ## `bashdep::install`
 
@@ -61,21 +52,11 @@ DEPENDENCIES=(
 bashdep::install "${DEPENDENCIES[@]}"
 ```
 
-Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`),
-which `bashdep::setup jobs=N` and the CLI's `--jobs=N` also set. Use `1`
-for sequential downloads. `BASHDEP_JOBS` must be a
-non-negative integer; any other value is rejected with a warning and the
-default of `4` is used. Append `#sha256=<hex>` to a URL to verify the
-download (see [Checksum verification](behavior.md#checksum-verification-opt-in)).
-Prints an `installed X, skipped Y, failed Z` summary (unless `silent`)
-and returns the number of failed downloads (0 on success, capped at 255).
+Downloads run in parallel, up to `BASHDEP_JOBS` at a time (default `4`), which `bashdep::setup jobs=N` and the CLI's `--jobs=N` also set. Use `1` for sequential downloads. `BASHDEP_JOBS` must be a non-negative integer; any other value is rejected with a warning and the default of `4` is used. Append `#sha256=<hex>` to a URL to verify the download (see [Checksum verification](behavior.md#checksum-verification-opt-in)). Prints an `installed X, skipped Y, failed Z` summary (unless `silent`) and returns the number of failed downloads (0 on success, capped at 255).
 
 ## `bashdep::install_from`
 
-Read a dependency list from a file and install every entry. One URL per
-line; blank lines and `#` comments are ignored; leading/trailing
-whitespace is stripped. Defaults to `.bashdep` in the current directory
-when called without arguments.
+Read a dependency list from a file and install every entry. One URL per line; blank lines and `#` comments are ignored; leading/trailing whitespace is stripped. Defaults to `.bashdep` in the current directory when called without arguments.
 
 ```bash
 bashdep::install_from            # reads ./.bashdep
@@ -93,46 +74,35 @@ https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
 ```
 
-Returns `1` if the file is missing or unreadable; otherwise propagates
-the failure count from `bashdep::install`.
+Returns `1` if the file is missing or unreadable; otherwise propagates the failure count from `bashdep::install`.
 
 ## `bashdep::uninstall`
 
-Remove one or more installed dependencies. Searches `dir` and `dev-dir`,
-deletes the file, and drops the matching `.bashdep.lock` entry. The
-lockfile is removed once it has no entries left.
+Remove one or more installed dependencies. Searches `dir` and `dev-dir`, deletes the file, and drops the matching `.bashdep.lock` entry. The lockfile is removed once it has no entries left.
 
 ```bash
 bashdep::uninstall create-pr dumper.sh
 ```
 
-Returns the number of names not found (0 on full success). In dry-run
-mode, prints intended actions without touching disk.
+Returns the number of names not found (0 on full success). In dry-run mode, prints intended actions without touching disk.
 
 ## `bashdep::clean`
 
-Remove orphan files in each managed directory: anything not recorded in
-`.bashdep.lock` (and not the lockfile itself). Directories without a
-lockfile are left alone — bashdep treats a missing lockfile as "this
-dir is unmanaged".
+Remove orphan files in each managed directory: anything not recorded in `.bashdep.lock` (and not the lockfile itself). Directories without a lockfile are left alone — bashdep treats a missing lockfile as "this dir is unmanaged".
 
 ```bash
 bashdep::clean
 ```
 
-Returns 0 when every orphan was removed, otherwise the number of orphans
-that could not be removed (e.g. a permission error), capped at 255. A
-failed removal is reported to stderr. Honors dry-run mode.
+Returns 0 when every orphan was removed, otherwise the number of orphans that could not be removed (e.g. a permission error), capped at 255. A failed removal is reported to stderr. Honors dry-run mode.
 
 ## `bashdep::doctor`
 
-Check each managed directory for inconsistencies. Reports three kinds of
-issues:
+Check each managed directory for inconsistencies. Reports three kinds of issues:
 
 - Lockfile entries whose file is missing on disk.
 - Files on disk with no lockfile entry.
-- Malformed lockfile lines (not exactly two tab-separated fields), which
-  catches merge-conflict or hand-edit damage.
+- Malformed lockfile lines (not exactly two tab-separated fields), which catches merge-conflict or hand-edit damage.
 
 ```bash
 bashdep::doctor
@@ -142,22 +112,18 @@ bashdep::doctor
 # doctor: 2 issue(s) found
 ```
 
-Returns the issue count (capped at 255). Useful in CI to catch lockfile
-drift after manual edits or merge conflicts.
+Returns the issue count (capped at 255). Useful in CI to catch lockfile drift after manual edits or merge conflicts.
 
 ## `bashdep::self_update`
 
-Re-download the bashdep script itself from upstream and replace the
-local copy via an atomic `mv`. Defaults to the `main` branch.
+Re-download the bashdep script itself from upstream and replace the local copy via an atomic `mv`. Defaults to the `main` branch.
 
 ```bash
 bashdep::self_update            # main branch
 bashdep::self_update 0.4.0      # specific tag/branch
 ```
 
-The download URL is built from `BASHDEP_SELF_URL_TEMPLATE` (a printf
-format string with one `%s` slot for the ref). After updating, re-source
-the script to load the new version. Honors dry-run mode.
+The download URL is built from `BASHDEP_SELF_URL_TEMPLATE` (a printf format string with one `%s` slot for the ref). After updating, re-source the script to load the new version. Honors dry-run mode.
 
 ## `bashdep::setup`
 
@@ -177,17 +143,11 @@ Configure defaults before calling `install`. All parameters are optional.
 bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
 ```
 
-Invalid values (unknown param, non-boolean for `silent`/`force`) cause
-`setup` to print an error to stderr and return `1`. `jobs` is not
-validated here — like the `BASHDEP_JOBS` environment variable it is
-checked when `install` runs, where a non-integer warns and falls back
-to `4`.
+Invalid values (unknown param, non-boolean for `silent`/`force`) cause `setup` to print an error to stderr and return `1`. `jobs` is not validated here — like the `BASHDEP_JOBS` environment variable it is checked when `install` runs, where a non-integer warns and falls back to `4`.
 
 ## `bashdep::list`
 
-Print every installed dependency recorded in the lockfiles under `dir`
-and `dev-dir`. One entry per line, tab-separated: `<path>\t<source URL>`.
-Pass extra directories as positional arguments to include them too.
+Print every installed dependency recorded in the lockfiles under `dir` and `dev-dir`. One entry per line, tab-separated: `<path>\t<source URL>`. Pass extra directories as positional arguments to include them too.
 
 ```bash
 $ bashdep::list
@@ -200,8 +160,7 @@ Pipe into `awk` / `cut` for audit and diff tooling.
 
 ## `bashdep::completion`
 
-Print a shell completion script for the CLI commands and flags. Accepts
-`bash` (default) or `zsh`; returns `1` for any other shell.
+Print a shell completion script for the CLI commands and flags. Accepts `bash` (default) or `zsh`; returns `1` for any other shell.
 
 ```bash
 source <(bashdep completion bash)   # or: bashdep completion zsh

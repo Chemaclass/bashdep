@@ -1,18 +1,12 @@
 # bashdep
 
-[![Release](https://img.shields.io/github/v/release/Chemaclass/bashdep?sort=semver)](https://github.com/Chemaclass/bashdep/releases/latest)
-[![CI](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Chemaclass/bashdep?sort=semver)](https://github.com/Chemaclass/bashdep/releases/latest) [![CI](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Minimal, zero-dependency **bash dependency manager**. Declare URLs;
-bashdep downloads them into `lib/` and keeps installs idempotent via a
-per-directory `.bashdep.lock`. No registry, no runtime — just `curl`
-(or `wget`).
+Minimal, zero-dependency **bash dependency manager**. Declare URLs; bashdep downloads them into `lib/` and keeps installs idempotent via a per-directory `.bashdep.lock`. No registry, no runtime — just `curl` (or `wget`).
 
 ## Quick start
 
-**1. Vendor bashdep into your repo** (pinned release, verified against
-its published `checksum` — recommended for reproducibility):
+**1. Vendor bashdep into your repo** (pinned release, verified against its published `checksum` — recommended for reproducibility):
 
 ```bash
 mkdir -p lib
@@ -21,17 +15,14 @@ curl -fsSLo checksum     https://github.com/Chemaclass/bashdep/releases/latest/d
 ( cd lib && shasum -a 256 -c ../checksum ) && chmod +x lib/bashdep
 ```
 
-Prefer the bleeding edge? Grab the `main` branch instead (unversioned,
-no checksum):
+Prefer the bleeding edge? Grab the `main` branch instead (unversioned, no checksum):
 
 ```bash
 curl -fsSLo lib/bashdep https://raw.githubusercontent.com/Chemaclass/bashdep/main/bashdep
 chmod +x lib/bashdep
 ```
 
-**2. Declare your dependencies in a `.bashdep` file** (one URL per
-line; `#` comments allowed; `@dev` suffix routes to `lib/dev/`;
-optional `#sha256=<hex>` verifies the download):
+**2. Declare your dependencies in a `.bashdep` file** (one URL per line; `#` comments allowed; `@dev` suffix routes to `lib/dev/`; optional `#sha256=<hex>` verifies the download):
 
 ```
 https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
@@ -46,10 +37,7 @@ https://example.com/pinned.sh#sha256=e3b0c44298fc1c149afbf4c8996fb924...
 ./lib/bashdep install
 ```
 
-That's it. The first run downloads everything and writes
-`.bashdep.lock`. Re-runs skip already-installed deps; bumping a URL
-version re-downloads only that entry. Commit `.bashdep.lock` to lock
-versions across collaborators.
+That's it. The first run downloads everything and writes `.bashdep.lock`. Re-runs skip already-installed deps; bumping a URL version re-downloads only that entry. Commit `.bashdep.lock` to lock versions across collaborators.
 
 Everyday commands:
 
@@ -64,8 +52,7 @@ Enable tab completion: `source <(./lib/bashdep completion bash)` (or `zsh`).
 
 ### Or source it from a script
 
-Prefer a programmatic setup (custom dirs, inline arrays)? Source
-bashdep and call the same functions:
+Prefer a programmatic setup (custom dirs, inline arrays)? Source bashdep and call the same functions:
 
 ```bash
 #!/bin/bash
@@ -75,50 +62,36 @@ source lib/bashdep
 bashdep::install_from   # reads ./.bashdep
 ```
 
-See the [API reference](docs/api.md) for `bashdep::setup`,
-`bashdep::install`, and friends.
+See the [API reference](docs/api.md) for `bashdep::setup`, `bashdep::install`, and friends.
 
 ### Exit codes for CI
 
-Every command returns a meaningful, capped-at-255 count, so it drops into
-CI as-is:
+Every command returns a meaningful, capped-at-255 count, so it drops into CI as-is:
 
 ```bash
 ./lib/bashdep doctor || echo "lockfile drift: $? issue(s)"   # 0 = clean
 ./lib/bashdep install || echo "$? download(s) failed"
 ```
 
-`install` returns the failure count, `doctor` the issue count, `clean`
-the number of orphans it could not remove, and `uninstall` the count of
-names not found. See [Behavior](docs/behavior.md#error-handling).
+`install` returns the failure count, `doctor` the issue count, `clean` the number of orphans it could not remove, and `uninstall` the count of names not found. See [Behavior](docs/behavior.md#error-handling).
 
 ## Why bashdep?
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
-- **Parallel downloads** — dependencies fetch concurrently (tune with
-  `--jobs=N`, `bashdep::setup jobs=N`, or `BASHDEP_JOBS`; default 4,
-  `1` for sequential).
-- **Optional integrity checks** — pin a dependency with `#sha256=<hex>`
-  and bashdep verifies the download before recording it.
+- **Parallel downloads** — dependencies fetch concurrently (tune with `--jobs=N`, `bashdep::setup jobs=N`, or `BASHDEP_JOBS`; default 4, `1` for sequential).
+- **Optional integrity checks** — pin a dependency with `#sha256=<hex>` and bashdep verifies the download before recording it.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
 - **`curl` or `wget`** — uses whichever is installed.
-- **File-driven, array-driven, or CLI** — `install_from`, `install`, or
-  `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
-- **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`,
-  `self_update`, `completion`.
+- **File-driven, array-driven, or CLI** — `install_from`, `install`, or `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
+- **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`.
 - **Modes** — `force`, `dry-run`, `silent`, `verbose`.
 
 ## Documentation
 
-- [**API reference**](docs/api.md) — the CLI plus `install`,
-  `install_from`, `setup`, `list`, `uninstall`, `clean`, `doctor`,
-  `self_update`, `completion`, `version`.
-- [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies,
-  checksum verification, parallel downloads, error handling, gotchas.
-- [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged
-  release with `release.sh`.
-- [**Contributing**](.github/CONTRIBUTING.md) — project layout, test
-  conventions, coding guidelines.
+- [**API reference**](docs/api.md) — the CLI plus `install`, `install_from`, `setup`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`, `version`.
+- [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies, checksum verification, parallel downloads, error handling, gotchas.
+- [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged release with `release.sh`.
+- [**Contributing**](.github/CONTRIBUTING.md) — project layout, test conventions, coding guidelines.
 
 ## Development
 

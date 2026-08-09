@@ -244,7 +244,7 @@ Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
               <li>Idempotent per source URL via <code>.bashdep.lock</code></li>
               <li>The lockfile records every file's origin</li>
               <li>Opt-in <code>#sha256=</code> integrity verification</li>
-              <li>Parallel downloads, tuned by <code>BASHDEP_JOBS</code></li>
+              <li>Parallel downloads, tuned by <code>--jobs=N</code></li>
               <li><code>@dev</code> suffix routes tools to <code>lib/dev/</code></li>
             </ul>
           </div>
@@ -260,7 +260,7 @@ Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
           <code>curl</code>/<code>wget</code>, <code>awk</code>, and POSIX builtins.</p>
         <div class="grid">
           <div class="feat"><div class="ix">01</div><h3>idempotent lockfile</h3><p>Per-directory <code>.bashdep.lock</code> records each URL; re-runs skip unchanged deps, a URL bump re-downloads only that entry.</p></div>
-          <div class="feat"><div class="ix">02</div><h3>parallel downloads</h3><p>Fetch concurrently (default 4, set <code>BASHDEP_JOBS</code>). Lockfile writes batch into one atomic rewrite per dir.</p></div>
+          <div class="feat"><div class="ix">02</div><h3>parallel downloads</h3><p>Fetch concurrently (default 4, set <code>--jobs=N</code> or <code>BASHDEP_JOBS</code>). Lockfile writes batch into one atomic rewrite per dir.</p></div>
           <div class="feat"><div class="ix">03</div><h3>checksum verify</h3><p>Append <code>#sha256=&lt;hex&gt;</code> to any URL; a mismatch fails the install and leaves no file or lockfile entry.</p></div>
           <div class="feat"><div class="ix">04</div><h3>dev / prod split</h3><p>The <code>@dev</code> suffix routes a dependency to <code>lib/dev/</code>, keeping runtime and tooling apart.</p></div>
           <div class="feat"><div class="ix">05</div><h3>curl or wget</h3><p>Uses whichever is installed, preferring <code>curl</code> and falling back to <code>wget</code> automatically.</p></div>
@@ -285,7 +285,7 @@ Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
  │  declare │──▶│  route   │──▶│ curl │ wget  │─▶│  sha256  │──▶│  atomic write │
  │  urls    │   │  dir     │   │ in parallel  │  │  reject≠ │   │  one per dir  │
  └──────────┘   └──────────┘   └──────────────┘  └──────────┘   └───────────────┘
-   <span class="l">@dev</span>            <span class="l">strip</span>          <span class="l">BASHDEP_JOBS</span>     <span class="l">#sha256=</span>       <span class="l">commit .lock</span></pre>
+   <span class="l">@dev</span>            <span class="l">strip</span>          <span class="l">--jobs=N</span>         <span class="l">#sha256=</span>       <span class="l">commit .lock</span></pre>
 <!-- editorconfig-checker-enable -->
         </div>
 
