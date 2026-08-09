@@ -261,6 +261,11 @@ function test_bashdep_setup_persists_dev_dir() {
   assert_equals "custom_dev" "$BASHDEP_DEV_DIR"
 }
 
+function test_bashdep_setup_persists_jobs() {
+  bashdep::setup jobs=8
+  assert_equals "8" "$BASHDEP_JOBS"
+}
+
 function test_bashdep_setup_silent_true_makes_is_silent_truthy() {
   bashdep::setup silent=true
   bashdep::is_silent
@@ -383,6 +388,39 @@ function test_bashdep_lock_get_returns_empty_when_entry_missing() {
   local lock_file="$TEST_DIR/lock"
   printf 'other\thttps://example.com/other\n' > "$lock_file"
   assert_empty "$(bashdep::_lock_get "$lock_file" missing)"
+}
+
+# The name is matched as a literal, so a lockfile entry whose name contains
+# glob metacharacters resolves to itself rather than to whatever it matches.
+function test_bashdep_lock_get_treats_glob_chars_in_name_literally() {
+  local lock_file="$TEST_DIR/lock"
+  {
+    printf 'a*c\thttps://example.com/star\n'
+    printf 'abc\thttps://example.com/abc\n'
+  } > "$lock_file"
+
+  assert_equals "https://example.com/star" "$(bashdep::_lock_get "$lock_file" 'a*c')"
+}
+
+# Entries are anchored to the start of a line, so a name that is only a
+# suffix of a recorded name must not resolve.
+function test_bashdep_lock_get_does_not_match_a_name_suffix() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'my-tool\thttps://example.com/my-tool\n' > "$lock_file"
+  assert_empty "$(bashdep::_lock_get "$lock_file" tool)"
+}
+
+# Malformed three-field lines still yield the second field only.
+function test_bashdep_lock_get_returns_second_field_only() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'tool\thttps://example.com/tool\textra\n' > "$lock_file"
+  assert_equals "https://example.com/tool" "$(bashdep::_lock_get "$lock_file" tool)"
+}
+
+function test_bashdep_lock_get_reads_the_last_line_without_trailing_newline() {
+  local lock_file="$TEST_DIR/lock"
+  printf 'tool\thttps://example.com/tool' > "$lock_file"
+  assert_equals "https://example.com/tool" "$(bashdep::_lock_get "$lock_file" tool)"
 }
 
 function test_bashdep_lock_set_upserts_entry() {
@@ -1572,6 +1610,20 @@ function test_bashdep_cli_unknown_option_fails() {
   local stderr
   stderr=$(bashdep::main install --bogus 2>&1 >/dev/null)
   assert_contains "Unknown option" "$stderr"
+}
+
+function test_bashdep_cli_usage_documents_jobs_option() {
+  assert_contains "--jobs=N" "$(bashdep::main --help)"
+}
+
+function test_bashdep_cli_jobs_option_sets_job_count() {
+  BASHDEP_JOBS=4
+  bashdep::main --jobs=2 version >/dev/null
+  assert_equals "2" "$BASHDEP_JOBS"
+}
+
+function test_bashdep_completion_offers_jobs_flag() {
+  assert_contains "--jobs" "$(bashdep::completion bash)"
 }
 
 function test_bashdep_cli_install_url_dry_run_downloads_nothing() {

@@ -96,7 +96,8 @@ names not found. See [Behavior](docs/behavior.md#error-handling).
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
 - **Parallel downloads** — dependencies fetch concurrently (tune with
-  `BASHDEP_JOBS`, default 4; `BASHDEP_JOBS=1` for sequential).
+  `--jobs=N`, `bashdep::setup jobs=N`, or `BASHDEP_JOBS`; default 4,
+  `1` for sequential).
 - **Optional integrity checks** — pin a dependency with `#sha256=<hex>`
   and bashdep verifies the download before recording it.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).

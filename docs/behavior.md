@@ -76,7 +76,8 @@ verified (the default).
 ## Error handling
 
 - `bashdep::install` downloads in parallel (up to `BASHDEP_JOBS`, default
-  `4`; set `BASHDEP_JOBS=1` for sequential). `BASHDEP_JOBS` must be a
+  `4`; use `1` for sequential). `BASHDEP_JOBS` is also settable via
+  `bashdep::setup jobs=N` or the CLI's `--jobs=N`. It must be a
   non-negative integer; a non-numeric or otherwise invalid value is
   rejected with a warning and the default of `4` is used. It continues
   past failed downloads and returns the failure count (capped at 255).
