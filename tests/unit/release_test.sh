@@ -50,6 +50,25 @@ function test_release_bump_version_minor_resets_patch() {
   assert_equals "1.3.0" "$(bump_version_string 1.2.9 minor)"
 }
 
+# --- version_is_greater ------------------------------------------------------
+
+function test_release_version_is_greater_accepts_next_minor() {
+  version_is_greater 0.10.0 0.9.0
+  assert_successful_code "$?"
+}
+
+function test_release_version_is_greater_rejects_older_version() {
+  version_is_greater 0.8.9 0.9.0
+  assert_general_error
+}
+
+function test_release_version_is_greater_orders_prereleases() {
+  version_is_greater 0.9.1-beta.2 0.9.1-beta.10
+  assert_general_error
+  version_is_greater 0.9.1 0.9.1-beta.10
+  assert_successful_code "$?"
+}
+
 # --- derive_repo -------------------------------------------------------------
 
 function test_release_derive_repo_from_ssh_remote() {

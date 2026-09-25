@@ -12,6 +12,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 - Unknown commands and options suggest the closest match (`Did you mean 'install'?`) instead of printing full usage.
 - Contributors: `make test` bootstraps bashunit via bashdep itself, `make` lists targets, and mistyped targets fail.
+- Contributors can run `make release/check` to run the local gate and preview a release in one command.
+- Documentation examples now use the current bashunit release and plain punctuation.
+
+### Fixed
+
+- Release preflight rejects versions that are older than the current version, including prerelease versions.
 
 ## [0.9.0] - 2026-08-09
 
@@ -22,7 +28,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ### Changed
 
 - Dev dependency: bashunit `0.17.0` → `0.45.0`, cutting the suite from ~27s to ~2.5s. `mock`/`unmock` now live in `tests/bootstrap.sh`, because bashunit's new doubles API cannot express a mock body that reads positional arguments.
-- `bashdep::_sha256` resolves `shasum`/`sha256sum` once per run rather than probing on every call, so all checksums in a run use the same tool — matching how `BASHDEP_DOWNLOADER` already pins `curl`/`wget`.
+- `bashdep::_sha256` resolves `shasum`/`sha256sum` once per run rather than probing on every call, so all checksums in a run use the same tool - matching how `BASHDEP_DOWNLOADER` already pins `curl`/`wget`.
 - CI actions bumped, and `action-shellcheck`/`action-editorconfig-checker` pinned off floating refs so runs are reproducible.
 
 ## [0.8.1] - 2026-07-24
@@ -41,7 +47,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   Other bash projects can copy these to automate GitHub releases. bashdep
   now **dogfoods** the engine via its own `release.conf`.
 - `templates/build.sh`: an amalgamator that inlines static, top-level
-  `source`/`.` includes into a single self-contained executable — a
+  `source`/`.` includes into a single self-contained executable - a
   release asset for multi-file bash projects. Dynamic includes
   (`source "$var"`, indented sources) are left untouched by design.
 
@@ -122,7 +128,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [0.4.2] - 2026-05-03
 
-First usable 0.4 release. Supersedes the yanked 0.4.0 and 0.4.1 — see
+First usable 0.4 release. Supersedes the yanked 0.4.0 and 0.4.1 - see
 [Yanked releases](#yanked-releases) below.
 
 ### Added
@@ -179,7 +185,7 @@ First usable 0.4 release. Supersedes the yanked 0.4.0 and 0.4.1 — see
   script (matched by `BASH_SOURCE` basename), so the README's
   recommended `lib/bashdep` layout no longer triggers `clean` to delete
   the tool or `doctor` to flag it as an orphan. *(was broken in 0.4.0)*
-- `bashdep::_vlog` returns 0 when verbose is off — previously the
+- `bashdep::_vlog` returns 0 when verbose is off - previously the
   trailing `&&` short-circuit propagated rc=1 out of `download_url`,
   causing `install` and `install_from` to return the install count as a
   "failure count" on every successful run. *(was broken in 0.4.0 and
@@ -187,10 +193,10 @@ First usable 0.4 release. Supersedes the yanked 0.4.0 and 0.4.1 — see
 
 ## Yanked releases
 
-- **[0.4.1] - 2026-05-03 — YANKED**: ships the clean/doctor self-exclusion
+- **[0.4.1] - 2026-05-03 - YANKED**: ships the clean/doctor self-exclusion
   fix but still contains the `_vlog` rc bug; `install_from` returns
   non-zero on success when verbose is off. Use 0.4.2.
-- **[0.4.0] - 2026-05-03 — YANKED**: ships every listed feature but
+- **[0.4.0] - 2026-05-03 - YANKED**: ships every listed feature but
   contains both bugs above. Use 0.4.2.
 
 GitHub release assets for 0.4.0 and 0.4.1 have been removed; their

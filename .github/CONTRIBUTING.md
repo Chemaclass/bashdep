@@ -13,14 +13,14 @@ Contributions are licensed under [MIT](../LICENSE).
 ## Project layout
 
 ```
-bashdep                     # Library entry point — sourced by consumers
+bashdep                     # Library entry point - sourced by consumers
 release.sh                  # Release automation (see docs/releasing.md)
 tests/unit/bashdep_test.sh  # Unit tests (bashunit)
 tests/unit/snapshots/       # Captured stdout for snapshot assertions
 example/demo.sh             # End-to-end demo
 docs/                       # API + behavior + releasing reference
 .github/workflows/          # CI: tests, ShellCheck, editorconfig
-Makefile                    # test / sa / lint / deps / release / pre_commit/install
+Makefile                    # test / check / deps / release/check / release
 ```
 
 The codebase is intentionally small and zero-runtime: only `curl` (or `wget`), `awk`, `mktemp`, and POSIX-ish utilities at runtime. Tests run on bash 3.2+ (default macOS) and bash 4+ (Linux CI).
@@ -44,7 +44,9 @@ Install these to run the full gate locally:
 3. Run `make check` (test + ShellCheck + editorconfig).
 4. Open the PR with a short summary and a test plan.
 
-Prefer commit-time enforcement? Either `make pre_commit/install` (links a plain git hook, so edits to `bin/pre-commit` apply without reinstalling) or, with the [pre-commit](https://pre-commit.com) framework, `pip install pre-commit && pre-commit install` — the committed `.pre-commit-config.yaml` runs the same Makefile gates.
+Before a release, run `make release/check`. It runs tests, ShellCheck, and lint, then previews the next version and release steps. It changes no files.
+
+Prefer commit-time enforcement? Either `make pre_commit/install` (links a plain git hook, so edits to `bin/pre-commit` apply without reinstalling) or, with the [pre-commit](https://pre-commit.com) framework, `pip install pre-commit && pre-commit install`. The committed `.pre-commit-config.yaml` runs the same Makefile gates.
 
 Set your git `user.name` / `user.email` so commit history stays clean: see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
 

@@ -11,7 +11,7 @@ allowed-tools: Bash, Read, Grep, Glob
 
 Push the current branch and open a PR using the project's PR template.
 
-> **IMPORTANT:** This skill MUST be used for ALL pull request creation —
+> **IMPORTANT:** This skill MUST be used for ALL pull request creation -
 > even when the user just says "create pr" without `/pr`. Never create a
 > PR without following these steps.
 
@@ -21,15 +21,15 @@ Push the current branch and open a PR using the project's PR template.
 - Changed files: !`git diff main..HEAD --stat 2>/dev/null`
 
 ## Arguments
-- `$ARGUMENTS` — Issue reference (optional, e.g., `#42` or `42`). If
+- `$ARGUMENTS` - Issue reference (optional, e.g., `#42` or `42`). If
   provided, the PR Background section links to it.
 
 ## Instructions
 
-1. **Review the branch context above** — commits and changed files are
+1. **Review the branch context above** - commits and changed files are
     already loaded.
 
-2. **MANDATORY: Update `CHANGELOG.md`** — Read it and check the
+2. **MANDATORY: Update `CHANGELOG.md`** - Read it and check the
     `## Unreleased` section. If the changes from this branch aren't
     already listed there, you MUST update it before pushing. **Do NOT
     skip. Do NOT proceed without verifying.**

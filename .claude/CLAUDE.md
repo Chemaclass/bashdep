@@ -4,7 +4,7 @@
 
 **bashdep** is a minimal, zero-runtime bash dependency manager. Declare URLs in
 `.bashdep`; bashdep downloads them into `lib/` and keeps installs idempotent
-via a per-directory `.bashdep.lock`. No registry, no daemon — just `curl` +
+via a per-directory `.bashdep.lock`. No registry, no daemon - just `curl` +
 `awk` + `mktemp`.
 
 **Repo:** https://github.com/Chemaclass/bashdep
@@ -12,7 +12,7 @@ via a per-directory `.bashdep.lock`. No registry, no daemon — just `curl` +
 ## Core Principles
 
 ### TDD by Default
-**RED → GREEN → REFACTOR** — every change starts from a failing test. The
+**RED → GREEN → REFACTOR** - every change starts from a failing test. The
 `tests/unit/bashdep_test.sh` suite is the only safety net; keep it green.
 
 ### Bash 3.2+ Compatible
@@ -22,7 +22,7 @@ The library must run on **macOS default bash (3.2)** as well as Linux bash 4+.
 
 - `declare -A` (associative arrays)
 - `${var,,}` / `${var^^}` (case conversion)
-- `${array[-1]}` (negative indexing — needs 4.3+)
+- `${array[-1]}` (negative indexing - needs 4.3+)
 - `&>>` (append both streams)
 - `mapfile` / `readarray`
 
@@ -51,7 +51,7 @@ make lint    # editorconfig-checker
 
 ```
 bashdep/
-├── bashdep                    # Library entry point — sourced by consumers
+├── bashdep                    # Library entry point - sourced by consumers
 ├── release.sh                 # Release automation (see docs/releasing.md)
 ├── .bashdep                   # Dev deps (bashunit), pinned + checksummed
 ├── install-dependencies.sh    # Installs .bashdep via bashdep itself
@@ -66,7 +66,7 @@ bashdep/
 │   ├── behavior.md           # Lockfile / dev-dep / error semantics
 │   └── releasing.md          # Release process
 ├── example/                  # End-to-end demo
-├── lib/                      # Vendored test runner (bashunit) — git-ignored
+├── lib/                      # Vendored test runner (bashunit) - git-ignored
 ├── .claude/                  # Claude Code configuration
 │   ├── CLAUDE.md            # This file
 │   ├── rules/               # Path-scoped guidelines
@@ -111,16 +111,16 @@ lib/bashunit tests --filter NAME  # Run a single test by name
 
 `tests/unit/bashdep_test.sh` is split into two layers:
 
-1. **Pure-logic tests** (top of file) — no filesystem, no network. Set
+1. **Pure-logic tests** (top of file) - no filesystem, no network. Set
     `BASHDEP_*` globals directly and call `bashdep::_*` helpers.
-2. **Filesystem tests** — use `$TEST_DIR` (a `mktemp -d` set up in
+2. **Filesystem tests** - use `$TEST_DIR` (a `mktemp -d` set up in
     `set_up`, cleaned in `tear_down`). Use the `_seed_lock` /
     `_seed_installed` helpers to scaffold lockfile fixtures.
 
 **Snapshot tests** keep hardcoded `/tmp/test_<name>` paths because the
 snapshot embeds the path. Don't migrate those to `$TEST_DIR`.
 
-Test fixtures must never reach the network — mock or stub `curl`.
+Test fixtures must never reach the network - mock or stub `curl`.
 
 ## Skills
 
@@ -153,11 +153,11 @@ in each rule file).
 - One assertion per test; name describes behavior
 - Pure-logic tests above filesystem tests
 - Use `$TEST_DIR` from `set_up`, never `/tmp/...` (except snapshot tests)
-- Mock `curl` — no real network calls
+- Mock `curl` - no real network calls
 - Snapshot updates: `lib/bashunit --update-snapshots tests/`
 
 ### `docs/**/*.md`
-- Reflect the actual public API in `bashdep` — no inventing flags
+- Reflect the actual public API in `bashdep` - no inventing flags
 - Cross-link `api.md` ↔ `behavior.md` ↔ `releasing.md` where relevant
 - Keep examples copy-pasteable and runnable
 

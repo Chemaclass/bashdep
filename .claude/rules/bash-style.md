@@ -77,13 +77,13 @@ Constants → globals → private helpers (`bashdep::_*`) → public API
 
 Every mutating command must honor the four mode globals:
 
-- `BASHDEP_DRY_RUN=true` — print `[dry-run] Would …` instead of acting
-- `BASHDEP_SILENT=true` — suppress informational logs (errors still go to stderr)
-- `BASHDEP_VERBOSE=true` — emit additional `bashdep::_vlog` traces
-- `BASHDEP_FORCE=true` — bypass idempotence guards (re-download, overwrite)
+- `BASHDEP_DRY_RUN=true` - print `[dry-run] Would …` instead of acting
+- `BASHDEP_SILENT=true` - suppress informational logs (errors still go to stderr)
+- `BASHDEP_VERBOSE=true` - emit additional `bashdep::_vlog` traces
+- `BASHDEP_FORCE=true` - bypass idempotence guards (re-download, overwrite)
 
 Use the existing helpers (`bashdep::is_dry_run`, `bashdep::_log`,
-`bashdep::_vlog`) — do not branch on the globals directly.
+`bashdep::_vlog`) - do not branch on the globals directly.
 
 ## ShellCheck
 

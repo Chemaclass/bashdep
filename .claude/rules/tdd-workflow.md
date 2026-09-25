@@ -53,19 +53,19 @@ Test: (none yet)
     - Pure-logic tests at the top use `BASHDEP_*` globals + `bashdep::_*` helpers
     - Filesystem tests use `$TEST_DIR` + `_seed_lock` / `_seed_installed`
 3. Write the test following Arrange-Act-Assert
-4. Run: `lib/bashunit tests --filter <test_name>` — **must fail**
+4. Run: `lib/bashunit tests --filter <test_name>` - **must fail**
 5. Verify the failure is for the RIGHT reason (assertion mismatch, not
     "command not found" or syntax error)
 
 ## GREEN Phase
 
-1. Write **minimal** code in `bashdep` to pass — no extra features
-2. Run: `lib/bashunit tests --filter <test_name>` — **must pass**
-3. Run the full suite: `make test` — nothing else regressed
+1. Write **minimal** code in `bashdep` to pass - no extra features
+2. Run: `lib/bashunit tests --filter <test_name>` - **must pass**
+3. Run the full suite: `make test` - nothing else regressed
 
 ## REFACTOR Phase
 
-1. Improve readability, naming, extract duplication — **no behavior changes**
+1. Improve readability, naming, extract duplication - **no behavior changes**
 2. Run `make test` after each change
 3. Run quality checks: `make sa && make lint`
 

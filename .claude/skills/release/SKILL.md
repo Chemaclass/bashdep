@@ -12,7 +12,7 @@ Run pre-release checks then cut a new bashdep release via `release.sh`.
 
 ## Arguments
 
-- `$ARGUMENTS` — Optional. Either an explicit version (`0.5.0`) or a
+- `$ARGUMENTS` - Optional. Either an explicit version (`0.5.0`) or a
   bump flag (`--major`, `--minor`, `--patch`). Default:
   `release.sh` auto-bumps the **minor** version.
 
@@ -52,7 +52,7 @@ Ask the user to confirm before running `release.sh`.
 
 ### 3. Dry-run the release
 
-Always preview first — `release.sh` is idempotent in dry-run mode:
+Always preview first - `release.sh` is idempotent in dry-run mode:
 
 ```bash
 ./release.sh $ARGUMENTS --dry-run
