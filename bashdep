@@ -15,6 +15,8 @@ BASHDEP_DOWNLOADER=""
 BASHDEP_SHA_TOOL=""
 BASHDEP_LOCK_DEFER=false
 BASHDEP_LOCK_PENDING=()
+BASHDEP_COMMANDS="install add list uninstall clean doctor self-update completion version help"
+BASHDEP_FLAGS="--dir --dev-dir --file --jobs --force --dry-run --silent --verbose --version --help"
 BASHDEP_SELF_URL_TEMPLATE="${BASHDEP_SELF_URL_TEMPLATE:-https://raw.githubusercontent.com/Chemaclass/bashdep/%s/bashdep}"
 
 # Print bashdep version.
@@ -832,8 +834,7 @@ EOF
 # Returns 1 for an unsupported shell.
 function bashdep::completion() {
   local shell=${1:-bash}
-  local commands="install add list uninstall clean doctor self-update completion version help"
-  local flags="--dir --dev-dir --file --jobs --force --dry-run --silent --verbose --version --help"
+  local commands=$BASHDEP_COMMANDS flags=$BASHDEP_FLAGS
   case $shell in
     bash)
       cat <<EOF
@@ -869,6 +870,43 @@ EOF
   esac
 }
 
+# Internal: print the candidate in space-separated list $2 closest to $1,
+# when at most two edits away. Prints nothing otherwise.
+function bashdep::_suggest() {
+  local input=$1 candidates=$2
+  awk -v input="$input" -v list="$candidates" '
+    function distance(a, b,   i, j, la, lb, cost, d) {
+      la = length(a); lb = length(b)
+      for (i = 0; i <= la; i++) d[i, 0] = i
+      for (j = 0; j <= lb; j++) d[0, j] = j
+      for (i = 1; i <= la; i++)
+        for (j = 1; j <= lb; j++) {
+          cost = (substr(a, i, 1) == substr(b, j, 1)) ? 0 : 1
+          d[i, j] = d[i-1, j] + 1
+          if (d[i, j-1] + 1 < d[i, j]) d[i, j] = d[i, j-1] + 1
+          if (d[i-1, j-1] + cost < d[i, j]) d[i, j] = d[i-1, j-1] + cost
+        }
+      return d[la, lb]
+    }
+    BEGIN {
+      n = split(list, words, " "); best = ""; best_d = 3
+      for (k = 1; k <= n; k++) {
+        dist = distance(input, words[k])
+        if (dist < best_d) { best_d = dist; best = words[k] }
+      }
+      if (best != "") print best
+    }'
+}
+
+# Internal: print an unknown command/option error with a suggestion, if any.
+function bashdep::_unknown() {
+  local kind=$1 value=$2 candidates=$3 match hint=""
+  match=$(bashdep::_suggest "${value%%=*}" "$candidates")
+  [[ -n "$match" ]] && hint=" Did you mean '$match'?"
+  echo "Error: Unknown $kind '$value'.$hint" >&2
+  echo "Run 'bashdep --help' for usage." >&2
+}
+
 # CLI entry point, invoked when the script is executed rather than sourced.
 # Usage:
 #   bashdep <command> [options] [args]
@@ -892,7 +930,7 @@ function bashdep::main() {
       --jobs=*)    BASHDEP_JOBS="${arg#*=}" ;;
       --file=*)    dep_file="${arg#*=}" ;;
       -*)
-        echo "Error: Unknown option '$arg'" >&2
+        bashdep::_unknown option "$arg" "$BASHDEP_FLAGS"
         return 1
         ;;
       *)
@@ -950,8 +988,7 @@ function bashdep::main() {
       bashdep::usage
       ;;
     *)
-      echo "Error: Unknown command '$command'" >&2
-      bashdep::usage >&2
+      bashdep::_unknown command "$command" "$BASHDEP_COMMANDS"
       return 1
       ;;
   esac
