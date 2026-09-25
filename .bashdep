@@ -1,0 +1,2 @@
+# Dev dependencies, installed by `make deps` (bashdep installs itself).
+https://github.com/TypedDevs/bashunit/releases/download/0.45.0/bashunit#sha256=19983f26299825ff26cfbb90e6b3b6e86fc8044168191d3e8b86f615313a80a9

@@ -53,7 +53,8 @@ make lint    # editorconfig-checker
 bashdep/
 ├── bashdep                    # Library entry point — sourced by consumers
 ├── release.sh                 # Release automation (see docs/releasing.md)
-├── install-dependencies.sh    # Installs the test runner via bashdep itself
+├── .bashdep                   # Dev deps (bashunit), pinned + checksummed
+├── install-dependencies.sh    # Installs .bashdep via bashdep itself
 ├── Makefile                   # test / sa / lint / deps / release
 ├── tests/
 │   ├── bootstrap.sh          # Shared test helpers
@@ -97,8 +98,8 @@ Private helpers use a leading `_` (`bashdep::_classify_dep`, `_lock_get`, …).
 ## Common Commands
 
 ```bash
-make test                       # Run the suite
-make pre_commit/run             # test + sa + lint
+make test                       # Run the suite (installs bashunit on first run)
+make check                      # test + sa + lint
 make deps                       # Install bashunit (test runner)
 lib/bashunit tests              # Run bashunit directly
 lib/bashunit tests --filter NAME  # Run a single test by name

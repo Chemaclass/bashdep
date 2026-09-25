@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Changed
 
+- Contributor setup: bashdep now installs its own test runner from a pinned, checksummed `.bashdep`, and `make test` bootstraps it on first run. `make` lists targets from the Makefile itself, mistyped targets fail instead of silently succeeding, and `make pre_commit/install` links the hook so it stays current.
+
 ### Fixed
 
 ## [0.9.0] - 2026-08-09

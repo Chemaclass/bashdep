@@ -24,6 +24,7 @@ jobs:
               - 'bashdep'
               - 'release.sh'
               - 'install-dependencies.sh'
+              - '.bashdep'
               - '**/*.sh'
               - '.github/workflows/**'
               - 'Makefile'
@@ -52,7 +53,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: lib
-          key: bashunit-${{ runner.os }}-${{ hashFiles('install-dependencies.sh') }}
+          key: bashunit-${{ runner.os }}-${{ hashFiles('.bashdep') }}
 
       - name: "Install bashunit"
         run: bash install-dependencies.sh
