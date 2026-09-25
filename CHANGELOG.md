@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.10.0] - 2026-09-25
+
+### Added
+
 - `bashdep add <url...>`: installs and appends to `.bashdep` pinned with `#sha256=`.
 
 ### Changed
@@ -206,7 +214,8 @@ download URLs return 404. Git tags are preserved for history.
 
 - Initial release: declarative `bashdep::install` over a list of URLs.
 
-[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/Chemaclass/bashdep/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/Chemaclass/bashdep/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/Chemaclass/bashdep/compare/0.8.1...0.9.0
 [0.8.1]: https://github.com/Chemaclass/bashdep/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Chemaclass/bashdep/compare/0.7.0...0.8.0
