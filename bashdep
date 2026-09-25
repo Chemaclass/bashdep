@@ -132,6 +132,71 @@ function bashdep::install_from() {
   bashdep::install "${deps[@]}"
 }
 
+# Install one or more dependencies and append each to the dependency file
+# (BASHDEP_DEP_FILE, created when missing), pinned with the sha256 of the
+# downloaded file. URLs already listed are installed but not appended again.
+# Returns the number of dependencies that could not be added (capped at 255).
+function bashdep::add() {
+  if [[ $# -eq 0 ]]; then
+    echo "Error: add requires at least one URL." >&2
+    return 1
+  fi
+
+  local failures=0 dep
+  for dep in "$@"; do
+    bashdep::_add_one "$dep" || failures=$((failures + 1))
+  done
+  return $(( failures > 255 ? 255 : failures ))
+}
+
+# Internal: install $1 and record it in BASHDEP_DEP_FILE.
+function bashdep::_add_one() {
+  local dep=$1 file=$BASHDEP_DEP_FILE
+  bashdep::_classify_dep "$dep" || return 1
+  local entry="${dep%"$BASHDEP_SHA_ANNOTATION"*}"
+
+  bashdep::install "$dep" || return 1
+  if bashdep::is_dry_run; then
+    bashdep::_log "[dry-run] Would add '$entry' to '$file'"
+    return 0
+  fi
+
+  if bashdep::_dep_file_lists "$file" "$entry"; then
+    bashdep::_log "> $entry already in '$file'"
+    return 0
+  fi
+
+  bashdep::_classify_dep "$dep" || return 1
+  local sha=$BASHDEP_DEP_SHA
+  if [[ -z "$sha" ]]; then
+    sha=$(bashdep::_sha256 "$BASHDEP_DEP_DIR/${BASHDEP_DEP_URL##*/}") || return 1
+  fi
+
+  local content=""
+  [[ -f "$file" ]] && content=$(cat "$file"; printf x) && content=${content%x}
+  {
+    [[ -n "$content" && "$content" != *$'\n' ]] && printf '\n'
+    printf '%s%s%s\n' "$entry" "$BASHDEP_SHA_ANNOTATION" "$sha"
+  } >> "$file" || {
+    echo "Error: Could not write '$file'." >&2
+    return 1
+  }
+  bashdep::_log "> added $entry to '$file'"
+}
+
+# Internal: return 0 when dependency file $1 already lists $2, ignoring any
+# checksum annotation and surrounding whitespace.
+function bashdep::_dep_file_lists() {
+  local file=$1 entry=$2 line
+  [[ -f "$file" ]] || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ "${line%"$BASHDEP_SHA_ANNOTATION"*}" == "$entry" ]] && return 0
+  done < "$file"
+  return 1
+}
+
 # Remove one or more installed dependencies by file name. Searches
 # BASHDEP_DIR and BASHDEP_DEV_DIR; removes the file plus its lockfile
 # entry from wherever it lives. Drops empty lockfiles after the last
@@ -737,6 +802,8 @@ Usage:
 Commands:
   install [url...]      Install the given URLs, or read them from a
                         dependency file when none are given (see --file)
+  add <url...>          Install URLs and pin them with their sha256 in
+                        the dependency file (see --file)
   list [dir...]         List installed dependencies (path<TAB>url)
   uninstall <name...>   Remove dependencies and their lockfile entries
   clean                 Remove files not recorded in the lockfile
@@ -749,7 +816,7 @@ Commands:
 Options:
   --dir=DIR             Destination directory (default: lib)
   --dev-dir=DIR         Dev destination directory (default: lib/dev)
-  --file=FILE           Dependency file for install (default: .bashdep)
+  --file=FILE           Dependency file for install/add (default: .bashdep)
   --jobs=N              Concurrent downloads (default: 4, 1 = sequential)
   --force               Re-download even when already installed
   --dry-run             Preview actions without touching disk
@@ -765,7 +832,7 @@ EOF
 # Returns 1 for an unsupported shell.
 function bashdep::completion() {
   local shell=${1:-bash}
-  local commands="install list uninstall clean doctor self-update completion version help"
+  local commands="install add list uninstall clean doctor self-update completion version help"
   local flags="--dir --dev-dir --file --jobs --force --dry-run --silent --verbose --version --help"
   case $shell in
     bash)
@@ -849,6 +916,10 @@ function bashdep::main() {
       else
         bashdep::install_from "$dep_file"
       fi
+      ;;
+    add)
+      BASHDEP_DEP_FILE="$dep_file"
+      bashdep::add ${args[@]+"${args[@]}"}
       ;;
     list)
       bashdep::list ${args[@]+"${args[@]}"}

@@ -31,6 +31,8 @@ https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
 https://example.com/pinned.sh#sha256=e3b0c44298fc1c149afbf4c8996fb924...
 ```
 
+Or let bashdep write the entry and pin its checksum for you: `./lib/bashdep add <url>`.
+
 **3. Install:**
 
 ```bash
@@ -83,12 +85,12 @@ Every command returns a meaningful, capped-at-255 count, so it drops into CI as-
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
 - **`curl` or `wget`** — uses whichever is installed.
 - **File-driven, array-driven, or CLI** — `install_from`, `install`, or `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
-- **Lifecycle commands** — `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`.
+- **Lifecycle commands** — `add`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`.
 - **Modes** — `force`, `dry-run`, `silent`, `verbose`.
 
 ## Documentation
 
-- [**API reference**](docs/api.md) — the CLI plus `install`, `install_from`, `setup`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`, `version`.
+- [**API reference**](docs/api.md) — the CLI plus `install`, `install_from`, `add`, `setup`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`, `version`.
 - [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies, checksum verification, parallel downloads, error handling, gotchas.
 - [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged release with `release.sh`.
 - [**Contributing**](.github/CONTRIBUTING.md) — project layout, test conventions, coding guidelines.

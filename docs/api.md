@@ -5,6 +5,7 @@ Public functions exposed by `source lib/bashdep`. For lockfile rules, dev-depend
 - [CLI](#cli)
 - [`bashdep::install`](#bashdepinstall)
 - [`bashdep::install_from`](#bashdepinstall_from)
+- [`bashdep::add`](#bashdepadd)
 - [`bashdep::uninstall`](#bashdepuninstall)
 - [`bashdep::clean`](#bashdepclean)
 - [`bashdep::doctor`](#bashdepdoctor)
@@ -21,6 +22,7 @@ Every command is also available by executing the script directly — no `source`
 ```bash
 ./lib/bashdep install                      # install from ./.bashdep
 ./lib/bashdep install https://example.com/tool.sh
+./lib/bashdep add https://example.com/tool.sh   # install + pin in ./.bashdep
 ./lib/bashdep list
 ./lib/bashdep uninstall tool.sh
 ./lib/bashdep clean --dry-run
@@ -36,7 +38,7 @@ Enable shell completion by sourcing the generated script, e.g. in `~/.bashrc`:
 source <(bashdep completion bash)
 ```
 
-Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters: `--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`, `--silent`, `--verbose`. `install` also accepts `--file=FILE` to point at a dependency file other than `.bashdep`.
+Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters: `--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`, `--silent`, `--verbose`. `install` and `add` also accept `--file=FILE` to point at a dependency file other than `.bashdep`.
 
 `--version` prints the version and `-h`/`--help` prints usage. Exit codes match the underlying function's return value (e.g. `doctor` exits with the issue count), so the CLI drops into CI pipelines as-is. Sourcing the script never triggers the CLI.
 
@@ -75,6 +77,18 @@ https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
 ```
 
 Returns `1` if the file is missing or unreadable; otherwise propagates the failure count from `bashdep::install`.
+
+## `bashdep::add`
+
+Install one or more dependencies and append each to the dependency file (`BASHDEP_DEP_FILE`, default `.bashdep`), pinned with the SHA-256 of the downloaded file. Creates the file when missing.
+
+```bash
+bashdep::add https://example.com/tool.sh
+# .bashdep gains: https://example.com/tool.sh#sha256=<hex>
+bashdep::add https://example.com/dev-tool.sh@dev
+```
+
+A URL already listed (with or without a checksum) is installed but not appended again. An explicit `#sha256=` is verified and kept as given. Failed downloads are not recorded. Returns the number of dependencies that could not be added (capped at 255). Honors dry-run, silent, verbose, and force.
 
 ## `bashdep::uninstall`
 
