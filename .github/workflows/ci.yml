@@ -24,6 +24,7 @@ jobs:
               - 'bashdep'
               - 'release.sh'
               - 'install-dependencies.sh'
+              - '.bashdep'
               - '**/*.sh'
               - '.github/workflows/**'
               - 'Makefile'
@@ -52,7 +53,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: lib
-          key: bashunit-${{ runner.os }}-${{ hashFiles('install-dependencies.sh') }}
+          key: bashunit-${{ runner.os }}-${{ hashFiles('.bashdep') }}
 
       - name: "Install bashunit"
         run: bash install-dependencies.sh
@@ -91,7 +92,9 @@ jobs:
           fetch-depth: 0
 
       - name: Editorconfig Linter
-        uses: editorconfig-checker/action-editorconfig-checker@v2.2.0
+        uses: editorconfig-checker/action-editorconfig-checker@v3.0.0
+        with:
+          version: v4.0.2
 
       - name: Run Linter
         run: editorconfig-checker

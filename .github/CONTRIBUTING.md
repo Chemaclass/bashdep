@@ -31,7 +31,7 @@ Install these to run the full gate locally:
 
 | Tool | Purpose | Install |
 | --- | --- | --- |
-| [bashunit](https://bashunit.typeddevs.com/) `0.45.0` | Test runner | `make deps` |
+| [bashunit](https://bashunit.typeddevs.com/) `0.45.0` | Test runner | automatic on first `make test` (or `make deps`) |
 | [ShellCheck](https://www.shellcheck.net/) | Static analysis (`make sa`) | `brew install shellcheck` / `apt install shellcheck` |
 | [editorconfig-checker](https://editorconfig-checker.github.io/) | Whitespace/indent lint (`make lint`) | `brew install editorconfig-checker` |
 
@@ -44,7 +44,7 @@ Install these to run the full gate locally:
 3. Run `make check` (test + ShellCheck + editorconfig).
 4. Open the PR with a short summary and a test plan.
 
-Prefer commit-time enforcement? Either `make pre_commit/install` (a plain git hook) or, with the [pre-commit](https://pre-commit.com) framework, `pip install pre-commit && pre-commit install` — the committed `.pre-commit-config.yaml` runs the same Makefile gates.
+Prefer commit-time enforcement? Either `make pre_commit/install` (links a plain git hook, so edits to `bin/pre-commit` apply without reinstalling) or, with the [pre-commit](https://pre-commit.com) framework, `pip install pre-commit && pre-commit install` — the committed `.pre-commit-config.yaml` runs the same Makefile gates.
 
 Set your git `user.name` / `user.email` so commit history stays clean: see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
 
@@ -59,19 +59,16 @@ Please include:
 
 ## Testing
 
-Install dev dependencies (bashunit, pinned to the CI version):
-
-```bash
-make deps
-```
-
-Run the suite:
+Run the suite. The first run installs bashunit into `lib/` with bashdep itself, pinned and checksummed in `.bashdep`:
 
 ```bash
 make test
+make test BASHUNIT_FLAGS="--filter lock"   # a subset
 # or directly:
 lib/bashunit tests
 ```
+
+To bump bashunit, change the URL and `#sha256=` in `.bashdep`; the next `make test` reinstalls it.
 
 Conventions in `tests/unit/bashdep_test.sh`:
 

@@ -4,7 +4,7 @@ echo "Running pre-commit checks"
 # Skip tests + ShellCheck when no shell-related files are staged.
 # editorconfig-check runs regardless because it validates whitespace
 # and indent on docs too.
-SHELL_PATHS_RE='(\.sh$|^bashdep$|^bin/pre-commit$|^Makefile$|^release\.sh$|^tests/)'
+SHELL_PATHS_RE='(\.sh$|^bashdep$|^\.bashdep$|^bin/pre-commit$|^Makefile$|^release\.sh$|^tests/)'
 STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
 SHELL_CHANGED=false
 if [[ -n "$STAGED" ]] && echo "$STAGED" | grep -Eq "$SHELL_PATHS_RE"; then

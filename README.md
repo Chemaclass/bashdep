@@ -96,12 +96,12 @@ Every command returns a meaningful, capped-at-255 count, so it drops into CI as-
 ## Development
 
 ```bash
-make deps              # Install bashunit (test runner)
+make test              # Run the suite (installs bashunit on first run)
 make check             # Full gate: test + ShellCheck + editorconfig
-make test              # Run the suite (BASHUNIT_FLAGS=--simple for quiet)
 make sa                # ShellCheck
 make lint              # editorconfig-checker
 make pre_commit/install
+make                   # List all targets
 ```
 
 See [CONTRIBUTING](.github/CONTRIBUTING.md) for the full guide.
