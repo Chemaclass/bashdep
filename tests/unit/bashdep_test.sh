@@ -1954,3 +1954,35 @@ function test_bashdep_cli_usage_documents_add() {
 function test_bashdep_completion_offers_add_command() {
   assert_contains " add " "$(bashdep::completion bash)"
 }
+
+function test_bashdep_suggest_finds_close_command() {
+  assert_equals "install" "$(bashdep::_suggest instal "install list doctor")"
+}
+
+function test_bashdep_suggest_is_empty_when_nothing_is_close() {
+  assert_empty "$(bashdep::_suggest zzzzzz "install list doctor")"
+}
+
+function test_bashdep_cli_unknown_command_suggests_match() {
+  local stderr
+  stderr=$(bashdep::main instal 2>&1 >/dev/null)
+  assert_contains "Did you mean 'install'?" "$stderr"
+}
+
+function test_bashdep_cli_unknown_command_points_to_help() {
+  local stderr
+  stderr=$(bashdep::main bogus 2>&1 >/dev/null)
+  assert_contains "Run 'bashdep --help' for usage." "$stderr"
+}
+
+function test_bashdep_cli_unknown_option_suggests_match() {
+  local stderr
+  stderr=$(bashdep::main install --dryrun 2>&1 >/dev/null)
+  assert_contains "Did you mean '--dry-run'?" "$stderr"
+}
+
+function test_bashdep_cli_unknown_option_with_value_suggests_flag() {
+  local stderr
+  stderr=$(bashdep::main install --job=2 2>&1 >/dev/null)
+  assert_contains "Did you mean '--jobs'?" "$stderr"
+}
