@@ -178,6 +178,45 @@ bump_version_string() {
   esac
 }
 
+# Return 0 when the candidate has higher SemVer precedence than current.
+version_is_greater() {
+  local candidate=$1 current=$2
+  local LC_ALL=C
+  local candidate_core=${candidate%%-*} current_core=${current%%-*}
+  local candidate_parts=() current_parts=() candidate_ids=() current_ids=()
+  local candidate_pre="" current_pre="" i
+
+  IFS=. read -r -a candidate_parts <<< "$candidate_core"
+  IFS=. read -r -a current_parts <<< "$current_core"
+  for i in 0 1 2; do
+    if (( 10#${candidate_parts[$i]} > 10#${current_parts[$i]} )); then return 0; fi
+    if (( 10#${candidate_parts[$i]} < 10#${current_parts[$i]} )); then return 1; fi
+  done
+
+  [[ "$candidate" == *-* ]] && candidate_pre=${candidate#*-}
+  [[ "$current" == *-* ]] && current_pre=${current#*-}
+  [[ -z "$candidate_pre" && -n "$current_pre" ]] && return 0
+  [[ -n "$candidate_pre" && -z "$current_pre" ]] && return 1
+  [[ -z "$candidate_pre" ]] && return 1
+
+  IFS=. read -r -a candidate_ids <<< "$candidate_pre"
+  IFS=. read -r -a current_ids <<< "$current_pre"
+  for ((i = 0; i < ${#candidate_ids[@]} || i < ${#current_ids[@]}; i++)); do
+    (( i >= ${#candidate_ids[@]} )) && return 1
+    (( i >= ${#current_ids[@]} )) && return 0
+    [[ "${candidate_ids[$i]}" == "${current_ids[$i]}" ]] && continue
+    if [[ "${candidate_ids[$i]}" =~ ^[0-9]+$ ]]; then
+      [[ "${current_ids[$i]}" =~ ^[0-9]+$ ]] || return 1
+      (( 10#${candidate_ids[$i]} > 10#${current_ids[$i]} )) && return 0
+      return 1
+    fi
+    [[ "${current_ids[$i]}" =~ ^[0-9]+$ ]] && return 0
+    [[ "${candidate_ids[$i]}" > "${current_ids[$i]}" ]] && return 0
+    return 1
+  done
+  return 1
+}
+
 # --- Config loading ----------------------------------------------------------
 
 # Derive "owner/repo" from the configured remote's URL. Handles both
@@ -288,8 +327,8 @@ preflight() {
     ok "auto-bumped $BUMP_LEVEL: $current → $VERSION"
   fi
 
-  if [[ "$current" == "$VERSION" ]]; then
-    err "Version is already '$VERSION'. Choose a higher version."
+  if ! version_is_greater "$VERSION" "$current"; then
+    err "Version '$VERSION' must be higher than current version '$current'."
     exit 1
   fi
 

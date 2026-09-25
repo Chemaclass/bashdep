@@ -23,13 +23,13 @@ expected was.
 
 ### 2. Categorize Each Failure
 
-- **Test bug** — wrong expected value, missing `set_up` reset, leaky state
-- **Implementation bug** — `bashdep` doesn't match expected behavior
-- **Snapshot drift** — output legitimately changed; snapshot needs updating
-- **Environment issue** — missing `$TEST_DIR`, hardcoded path that doesn't
+- **Test bug** - wrong expected value, missing `set_up` reset, leaky state
+- **Implementation bug** - `bashdep` doesn't match expected behavior
+- **Snapshot drift** - output legitimately changed; snapshot needs updating
+- **Environment issue** - missing `$TEST_DIR`, hardcoded path that doesn't
   exist, missing fixture
-- **Bash 3.2 compat regression** — code uses a Bash 4+ feature
-- **Mode-flag leak** — `BASHDEP_*` global from a prior test wasn't reset
+- **Bash 3.2 compat regression** - code uses a Bash 4+ feature
+- **Mode-flag leak** - `BASHDEP_*` global from a prior test wasn't reset
 
 ### 3. Fix
 
@@ -63,7 +63,7 @@ make sa && make lint                       # Static checks
 ## Debugging Tips
 
 - Use `--filter "test_name"` to run a single test in isolation
-- Add `printf 'DEBUG: %s\n' "$var" >&2` temporarily — strip before commit
+- Add `printf 'DEBUG: %s\n' "$var" >&2` temporarily - strip before commit
 - If a test passes alone but fails in the suite, suspect a leaked
   `BASHDEP_*` global; reset in `set_up`
 - For snapshot mismatches, diff the snapshot file vs current stdout

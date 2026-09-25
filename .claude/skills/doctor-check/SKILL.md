@@ -8,9 +8,9 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Two-part health check:
 
-1. **Test coverage** — every public `bashdep::*` command must have tests
+1. **Test coverage** - every public `bashdep::*` command must have tests
     for its happy path, mode flags, and failure modes.
-2. **Runtime invariants** — `bashdep::doctor` itself reports lockfile vs
+2. **Runtime invariants** - `bashdep::doctor` itself reports lockfile vs
     filesystem inconsistencies; verify it covers every relevant directory.
 
 ## Workflow
@@ -41,9 +41,9 @@ For each, check coverage of:
 
 ### 3. Categorize Coverage
 
-- **Well tested** — happy path + mode flags + ≥1 failure mode
-- **Partially tested** — happy path only
-- **Not tested** — no test references the function
+- **Well tested** - happy path + mode flags + ≥1 failure mode
+- **Partially tested** - happy path only
+- **Not tested** - no test references the function
 
 ### 4. Identify Critical Gaps
 
@@ -51,7 +51,7 @@ For each, check coverage of:
 **Priority 2:** Mutating commands missing `dry-run` coverage (silently
 breaking the contract is the easiest regression to ship)
 **Priority 3:** Failure paths (`return 1`) with no test
-**Priority 4:** Snapshot drift — re-run the suite; if any snapshot
+**Priority 4:** Snapshot drift - re-run the suite; if any snapshot
 mismatch appears, decide drift vs regression
 
 ### 5. Run the Runtime Doctor

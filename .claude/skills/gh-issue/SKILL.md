@@ -12,7 +12,7 @@ Fetch a GitHub issue, create a branch, implement following TDD, and open
 a PR.
 
 ## Arguments
-- `$ARGUMENTS` — Issue number (e.g., `42` or `#42`)
+- `$ARGUMENTS` - Issue number (e.g., `42` or `#42`)
 
 ## Instructions
 
@@ -58,7 +58,7 @@ a PR.
 
 7. **Create implementation plan**:
     - Acceptance Criteria
-    - Test Strategy (which tests to write first — pure-logic vs
+    - Test Strategy (which tests to write first - pure-logic vs
       filesystem vs snapshot)
     - Files to Change (`bashdep`, `tests/unit/bashdep_test.sh`,
       `docs/*.md`, `CHANGELOG.md`)
@@ -71,9 +71,9 @@ a PR.
 9. **Follow strict TDD workflow** (see `.claude/rules/tdd-workflow.md`):
 
     For each test:
-    - **RED** — Write failing test, verify it fails for the RIGHT reason
-    - **GREEN** — Minimal code in `bashdep` to pass
-    - **REFACTOR** — Improve while keeping tests green
+    - **RED** - Write failing test, verify it fails for the RIGHT reason
+    - **GREEN** - Minimal code in `bashdep` to pass
+    - **REFACTOR** - Improve while keeping tests green
 
 10. **Run the suite frequently**:
     ```bash
@@ -85,7 +85,7 @@ a PR.
     make sa && make lint
     ```
 
-12. **Mode coverage** — if the change is mutating, add tests for
+12. **Mode coverage** - if the change is mutating, add tests for
     `BASHDEP_DRY_RUN`, `BASHDEP_SILENT`, `BASHDEP_VERBOSE`,
     `BASHDEP_FORCE` as relevant.
 

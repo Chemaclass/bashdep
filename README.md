@@ -2,11 +2,11 @@
 
 [![Release](https://img.shields.io/github/v/release/Chemaclass/bashdep?sort=semver)](https://github.com/Chemaclass/bashdep/releases/latest) [![CI](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml/badge.svg)](https://github.com/Chemaclass/bashdep/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Minimal, zero-dependency **bash dependency manager**. Declare URLs; bashdep downloads them into `lib/` and keeps installs idempotent via a per-directory `.bashdep.lock`. No registry, no runtime — just `curl` (or `wget`).
+Minimal, zero-dependency **bash dependency manager**. Declare URLs; bashdep downloads them into `lib/` and keeps installs idempotent via a per-directory `.bashdep.lock`. No registry or runtime. Just `curl` (or `wget`).
 
 ## Quick start
 
-**1. Vendor bashdep into your repo** (pinned release, verified against its published `checksum` — recommended for reproducibility):
+**1. Vendor bashdep into your repo** (pin the release and verify its published `checksum`):
 
 ```bash
 mkdir -p lib
@@ -25,10 +25,9 @@ chmod +x lib/bashdep
 **2. Declare your dependencies in a `.bashdep` file** (one URL per line; `#` comments allowed; `@dev` suffix routes to `lib/dev/`; optional `#sha256=<hex>` verifies the download):
 
 ```
-https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://github.com/TypedDevs/bashunit/releases/download/0.45.0/bashunit#sha256=19983f26299825ff26cfbb90e6b3b6e86fc8044168191d3e8b86f615313a80a9
 https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh@dev
-https://example.com/pinned.sh#sha256=e3b0c44298fc1c149afbf4c8996fb924...
 ```
 
 Or let bashdep write the entry and pin its checksum for you: `./lib/bashdep add <url>`.
@@ -80,20 +79,20 @@ Every command returns a meaningful, capped-at-255 count, so it drops into CI as-
 ## Why bashdep?
 
 - **Idempotent installs** via per-directory `.bashdep.lock`.
-- **Parallel downloads** — dependencies fetch concurrently (tune with `--jobs=N`, `bashdep::setup jobs=N`, or `BASHDEP_JOBS`; default 4, `1` for sequential).
-- **Optional integrity checks** — pin a dependency with `#sha256=<hex>` and bashdep verifies the download before recording it.
+- **Parallel downloads:** dependencies fetch concurrently (tune with `--jobs=N`, `bashdep::setup jobs=N`, or `BASHDEP_JOBS`; default 4, `1` for sequential).
+- **Optional integrity checks:** pin a dependency with `#sha256=<hex>` and bashdep verifies the download before recording it.
 - **Dev/prod separation** via the `@dev` URL suffix (`lib/` vs `lib/dev/`).
-- **`curl` or `wget`** — uses whichever is installed.
-- **File-driven, array-driven, or CLI** — `install_from`, `install`, or `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
-- **Lifecycle commands** — `add`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`.
-- **Modes** — `force`, `dry-run`, `silent`, `verbose`.
+- **`curl` or `wget`:** uses whichever is installed.
+- **File-driven, array-driven, or CLI:** `install_from`, `install`, or `./lib/bashdep <command>` (with `bash`/`zsh` tab completion).
+- **Lifecycle commands:** `add`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`.
+- **Modes:** `force`, `dry-run`, `silent`, `verbose`.
 
 ## Documentation
 
-- [**API reference**](docs/api.md) — the CLI plus `install`, `install_from`, `add`, `setup`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`, `version`.
-- [**Behavior**](docs/behavior.md) — lockfile rules, dev dependencies, checksum verification, parallel downloads, error handling, gotchas.
-- [**Releasing**](docs/releasing.md) — how maintainers cut a new tagged release with `release.sh`.
-- [**Contributing**](.github/CONTRIBUTING.md) — project layout, test conventions, coding guidelines.
+- [**API reference**](docs/api.md): the CLI plus `install`, `install_from`, `add`, `setup`, `list`, `uninstall`, `clean`, `doctor`, `self_update`, `completion`, `version`.
+- [**Behavior**](docs/behavior.md): lockfile rules, dev dependencies, checksum verification, parallel downloads, error handling, gotchas.
+- [**Releasing**](docs/releasing.md): how maintainers cut a new tagged release with `release.sh`.
+- [**Contributing**](.github/CONTRIBUTING.md): project layout, test conventions, coding guidelines.
 
 ## Development
 
@@ -103,6 +102,7 @@ make check             # Full gate: test + ShellCheck + editorconfig
 make sa                # ShellCheck
 make lint              # editorconfig-checker
 make pre_commit/install
+make release/check     # Run checks and preview the next release
 make                   # List all targets
 ```
 

@@ -17,7 +17,7 @@ Public functions exposed by `source lib/bashdep`. For lockfile rules, dev-depend
 
 ## CLI
 
-Every command is also available by executing the script directly — no `source` needed:
+Every command is also available by executing the script directly. No `source` needed:
 
 ```bash
 ./lib/bashdep install                      # install from ./.bashdep
@@ -35,7 +35,7 @@ Every command is also available by executing the script directly — no `source`
 Enable shell completion by sourcing the generated script, e.g. in `~/.bashrc`:
 
 ```bash
-source <(bashdep completion bash)
+source <(./lib/bashdep completion bash)
 ```
 
 Options map 1:1 to [`bashdep::setup`](#bashdepsetup) parameters: `--dir=DIR`, `--dev-dir=DIR`, `--jobs=N`, `--force`, `--dry-run`, `--silent`, `--verbose`. `install` and `add` also accept `--file=FILE` to point at a dependency file other than `.bashdep`.
@@ -69,7 +69,7 @@ Example `.bashdep`:
 
 ```
 # Runtime
-https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+https://github.com/TypedDevs/bashunit/releases/download/0.45.0/bashunit
 https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 
 # Dev tools
@@ -102,7 +102,7 @@ Returns the number of names not found (0 on full success). In dry-run mode, prin
 
 ## `bashdep::clean`
 
-Remove orphan files in each managed directory: anything not recorded in `.bashdep.lock` (and not the lockfile itself). Directories without a lockfile are left alone — bashdep treats a missing lockfile as "this dir is unmanaged".
+Remove orphan files in each managed directory: anything not recorded in `.bashdep.lock` (and not the lockfile itself). Directories without a lockfile are left alone. A missing lockfile means "this dir is unmanaged".
 
 ```bash
 bashdep::clean
@@ -134,7 +134,7 @@ Re-download the bashdep script itself from upstream and replace the local copy v
 
 ```bash
 bashdep::self_update            # main branch
-bashdep::self_update 0.4.0      # specific tag/branch
+bashdep::self_update 0.9.0      # specific tag/branch
 ```
 
 The download URL is built from `BASHDEP_SELF_URL_TEMPLATE` (a printf format string with one `%s` slot for the ref). After updating, re-source the script to load the new version. Honors dry-run mode.
@@ -157,7 +157,7 @@ Configure defaults before calling `install`. All parameters are optional.
 bashdep::setup dir="vendor" dev-dir="src/dev" silent=true force=false
 ```
 
-Invalid values (unknown param, non-boolean for `silent`/`force`) cause `setup` to print an error to stderr and return `1`. `jobs` is not validated here — like the `BASHDEP_JOBS` environment variable it is checked when `install` runs, where a non-integer warns and falls back to `4`.
+Invalid values (unknown param, non-boolean for `silent`/`force`) cause `setup` to print an error to stderr and return `1`. Like the `BASHDEP_JOBS` environment variable, `jobs` is checked when `install` runs. A non-integer warns and falls back to `4`.
 
 ## `bashdep::list`
 
@@ -165,7 +165,7 @@ Print every installed dependency recorded in the lockfiles under `dir` and `dev-
 
 ```bash
 $ bashdep::list
-lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.17.0/bashunit
+lib/bashunit	https://github.com/TypedDevs/bashunit/releases/download/0.45.0/bashunit
 lib/create-pr	https://github.com/Chemaclass/create-pr/releases/download/0.6/create-pr
 lib/dev/dumper.sh	https://github.com/Chemaclass/bash-dumper/releases/download/0.1/dumper.sh
 ```
@@ -177,7 +177,7 @@ Pipe into `awk` / `cut` for audit and diff tooling.
 Print a shell completion script for the CLI commands and flags. Accepts `bash` (default) or `zsh`; returns `1` for any other shell.
 
 ```bash
-source <(bashdep completion bash)   # or: bashdep completion zsh
+source <(./lib/bashdep completion bash)   # or: ./lib/bashdep completion zsh
 ```
 
 ## `bashdep::version`
@@ -185,5 +185,5 @@ source <(bashdep completion bash)   # or: bashdep completion zsh
 Print the bashdep version.
 
 ```bash
-bashdep::version  # prints the version string, e.g. 0.7.0
+bashdep::version  # prints the version string, e.g. 0.9.0
 ```

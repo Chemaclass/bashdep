@@ -72,7 +72,7 @@ _seed_lock "$TEST_DIR" "file_name" "https://example.com/url"
 _seed_installed "$TEST_DIR" "file_name" "https://example.com/url"
 ```
 
-Use these instead of writing lockfile lines by hand — they keep the
+Use these instead of writing lockfile lines by hand - they keep the
 on-disk format consistent.
 
 ## Snapshot Tests
@@ -91,8 +91,8 @@ they keep hardcoded `/tmp/test_<name>` paths. Do **not** migrate them to
 ## Test Isolation
 
 - Use `$TEST_DIR` (per-test `mktemp -d`) for filesystem tests
-- No shared global state between tests — always reset `BASHDEP_*` in `set_up`
-- **No network calls** — mock or stub `curl`. Set
+- No shared global state between tests - always reset `BASHDEP_*` in `set_up`
+- **No network calls** - mock or stub `curl`. Set
   `BASHDEP_DRY_RUN=true` if you only need to assert what *would* happen
 - No real `release.sh` invocations from tests
 - Tests must be safe to run in any order
@@ -102,7 +102,7 @@ they keep hardcoded `/tmp/test_<name>` paths. Do **not** migrate them to
 `mock` and `unmock` are defined by **this repo** in `tests/bootstrap.sh`,
 not by bashunit. bashunit >= 0.40 moved its doubles under
 `bashunit::mock` and made the multi-argument form append `"$@"` to the
-body, which cannot express a mock body that reads positional arguments —
+body, which cannot express a mock body that reads positional arguments -
 the shape this suite uses everywhere:
 
 ```bash
@@ -112,7 +112,7 @@ mock curl <<< "payload"         # no body: echo stdin instead
 ```
 
 Each bashunit test runs in its own subshell, so mocks cannot leak between
-tests and need no registry — `unmock` is only for restoring a real
+tests and need no registry - `unmock` is only for restoring a real
 command *within* a single test.
 
 ## Mocking `curl`

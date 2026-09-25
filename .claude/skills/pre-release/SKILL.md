@@ -32,8 +32,8 @@ Run 3-5 times to catch flaky tests. All must pass.
 ### 3. Static Analysis & Lint
 
 ```bash
-make sa      # ShellCheck — zero warnings
-make lint    # editorconfig-checker — clean
+make sa      # ShellCheck - zero warnings
+make lint    # editorconfig-checker - clean
 ```
 
 ### 4. Documentation

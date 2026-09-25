@@ -9,7 +9,7 @@ GIT_HOOKS_DIR = $(shell git rev-parse --git-path hooks 2> /dev/null)
 PRE_COMMIT_SCRIPTS_FILE=bin/pre-commit
 
 .DEFAULT_GOAL := help
-.PHONY: help test check pre_commit/install pre_commit/run sa lint deps release release/dry-run
+.PHONY: help test check pre_commit/install pre_commit/run sa lint deps release release/check release/dry-run
 
 help: ## Show this help
 	@printf "\nUsage: make [command]\n\nCommands:\n"
@@ -54,11 +54,14 @@ lib/bashunit: .bashdep
 release: ## Cut a release: make release VERSION
 	@./release.sh $(filter-out $@,$(MAKECMDGOALS))
 
+release/check: check ## Run the local gate and preview a release: make release/check VERSION
+	@./release.sh $(filter-out $@,$(MAKECMDGOALS)) --dry-run
+
 release/dry-run: ## Preview a release: make release/dry-run VERSION
 	@./release.sh $(filter-out $@,$(MAKECMDGOALS)) --dry-run
 
 # Swallow the positional version arg, but only for release goals so typos still fail.
-ifneq ($(filter release release/dry-run,$(firstword $(MAKECMDGOALS))),)
+ifneq ($(filter release release/check release/dry-run,$(firstword $(MAKECMDGOALS))),)
 %:
 	@:
 endif

@@ -11,7 +11,7 @@ allowed-tools: Bash, Read, Grep, Glob
 
 Stage and commit current changes using the conventional commits format.
 
-> **IMPORTANT:** This skill MUST be used for ALL commits — even when the
+> **IMPORTANT:** This skill MUST be used for ALL commits - even when the
 > user just says "commit" without `/commit`. Never commit without
 > following these steps.
 
@@ -23,39 +23,39 @@ Stage and commit current changes using the conventional commits format.
 - Recent commits: !`git log --oneline -5 2>/dev/null`
 
 ## Arguments
-- `$ARGUMENTS` — Optional hint for the commit message
+- `$ARGUMENTS` - Optional hint for the commit message
   (e.g., `clean orphan files race`)
 
 ## Instructions
 
-1. **Review the state above** — understand what changed and why.
+1. **Review the state above** - understand what changed and why.
 
-2. **Stage files** — add only the relevant changed files by name. Never
+2. **Stage files** - add only the relevant changed files by name. Never
     use `git add -A` or `git add .`. Never stage files that contain
     secrets (`.env`, credentials, `lib/` artifacts, `local/`, `tmp/`).
 
 3. **Determine the commit type** from the nature of the changes:
-    - `feat` — new feature or capability
-    - `fix` — bug fix
-    - `docs` — documentation only
-    - `style` — formatting, whitespace (no logic change)
-    - `refactor` — code restructuring (no behavior change)
-    - `test` — adding or updating tests
-    - `chore` — maintenance, tooling, config
-    - `perf` — performance improvement
-    - `ci` — CI/CD config (`.github/workflows/`)
+    - `feat` - new feature or capability
+    - `fix` - bug fix
+    - `docs` - documentation only
+    - `style` - formatting, whitespace (no logic change)
+    - `refactor` - code restructuring (no behavior change)
+    - `test` - adding or updating tests
+    - `chore` - maintenance, tooling, config
+    - `perf` - performance improvement
+    - `ci` - CI/CD config (`.github/workflows/`)
 
 4. **Determine the scope** from the area of the codebase affected:
-    - `install` — `bashdep::install` / `install_from`
-    - `lock` — lockfile read/write helpers
-    - `doctor` — `bashdep::doctor`
-    - `clean` — `bashdep::clean`
-    - `uninstall` — `bashdep::uninstall`
-    - `setup` — `bashdep::setup`
-    - `cli` — CLI dispatch / flags
-    - `release` — `release.sh` and release tooling
-    - `docs` — `docs/`, `README.md`
-    - `ci` — `.github/workflows/`
+    - `install` - `bashdep::install` / `install_from`
+    - `lock` - lockfile read/write helpers
+    - `doctor` - `bashdep::doctor`
+    - `clean` - `bashdep::clean`
+    - `uninstall` - `bashdep::uninstall`
+    - `setup` - `bashdep::setup`
+    - `cli` - CLI dispatch / flags
+    - `release` - `release.sh` and release tooling
+    - `docs` - `docs/`, `README.md`
+    - `ci` - `.github/workflows/`
     - Use the most specific scope that fits. Omit if changes span many areas.
 
 5. **Write the commit message**:
@@ -97,8 +97,8 @@ perf(install): skip re-download when lock + file are in sync
 
 ## Rules
 
-- **One logical change per commit** — don't mix unrelated changes
-- **Never use `--no-verify`** — if hooks fail, fix the underlying issue
+- **One logical change per commit** - don't mix unrelated changes
+- **Never use `--no-verify`** - if hooks fail, fix the underlying issue
 - **Never amend** unless the user explicitly asks
-- **Always create a NEW commit** — even after a hook failure
+- **Always create a NEW commit** - even after a hook failure
 - **Author**: use the git config identity (never commit as default user)

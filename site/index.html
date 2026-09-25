@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>bashdep — a minimal bash dependency manager</title>
+  <title>bashdep: a minimal bash dependency manager</title>
   <meta name="description" content="bashdep is a minimal, zero-dependency bash dependency manager: declare URLs, get idempotent installs with a lockfile, parallel downloads, and optional checksum verification.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0e14'/%3E%3Cpath d='M3 5l3 3-3 3M8 11h5' stroke='%234fd6a3' stroke-width='1.6' fill='none' stroke-linecap='square'/%3E%3C/svg%3E">
   <style>
@@ -54,7 +54,7 @@
     .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
     ::selection { background: var(--accent); color: var(--bg); }
 
-    /* Header — a status/menu bar */
+    /* Header: a status/menu bar */
     header {
       position: sticky; top: 0; z-index: 10;
       background: var(--bg); border-bottom: 1px solid var(--border-strong);
@@ -116,7 +116,7 @@
     .col ul { margin: 0; padding: 0; list-style: none; }
     .col li { color: var(--fg-soft); font-size: 14.5px; margin: 9px 0; padding-left: 20px; position: relative; }
     .col li::before { position: absolute; left: 0; font-family: var(--mono); }
-    .col.bad li::before { content: "—"; color: #b7442c; }
+    .col.bad li::before { content: "-"; color: #b7442c; }
     .col.good li::before { content: "+"; color: var(--accent); font-weight: 700; }
     @media (prefers-color-scheme: dark) { .col.bad li::before { color: #e0765f; } }
 
@@ -204,7 +204,7 @@
       <h1>Dependency management<br>for <span class="p">bash</span> scripts.</h1>
       <p class="lead">Declare URLs in a <code>.bashdep</code> file. bashdep downloads them in
         parallel, verifies checksums, and keeps installs idempotent with a per-directory
-        lockfile — no registry, no daemon, no runtime.</p>
+        lockfile. No registry, no daemon, no runtime.</p>
       <div class="cta">
         <a class="btn primary" href="#start">[ get started ]</a>
         <a class="btn" href="https://github.com/Chemaclass/bashdep/releases/latest">[ latest release ]</a>
@@ -225,15 +225,15 @@ Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
       <div class="wrap">
         <p class="sechead"><span class="h"># </span>why</p>
         <h2 class="title">Vendoring bash deps by hand doesn't scale</h2>
-        <p class="sub">Shell projects pull helper scripts with copy-pasted <code>curl</code> lines —
-          no pinning, no integrity, no idempotency, no record of what's installed.</p>
+        <p class="sub">Shell projects pull helper scripts with copy-pasted <code>curl</code> lines.
+          No pinning, no integrity, no idempotency, no record of what's installed.</p>
         <div class="cols">
           <div class="col bad">
             <h3>hand-rolled</h3>
             <ul>
               <li>Re-downloads every run, or never updates</li>
               <li>No record of what came from where</li>
-              <li>No checksum — trust whatever the URL served</li>
+              <li>No checksum; trust whatever the URL served</li>
               <li>Serial downloads; one slow host stalls them all</li>
               <li>Dev-only tools mixed in with runtime deps</li>
             </ul>
@@ -265,8 +265,8 @@ Downloading 'dumper.sh' <span class="d">→ lib/dev/</span>
           <div class="feat"><div class="ix">04</div><h3>dev / prod split</h3><p>The <code>@dev</code> suffix routes a dependency to <code>lib/dev/</code>, keeping runtime and tooling apart.</p></div>
           <div class="feat"><div class="ix">05</div><h3>curl or wget</h3><p>Uses whichever is installed, preferring <code>curl</code> and falling back to <code>wget</code> automatically.</p></div>
           <div class="feat"><div class="ix">06</div><h3>cli + completion</h3><p>Run it as a command or source it as a library. Ships <code>bash</code>/<code>zsh</code> tab completion.</p></div>
-          <div class="feat"><div class="ix">07</div><h3>lifecycle tools</h3><p><code>list</code>, <code>uninstall</code>, <code>clean</code>, <code>doctor</code> — audit and repair lockfile / filesystem drift.</p></div>
-          <div class="feat"><div class="ix">08</div><h3>ci-friendly</h3><p>Every command returns a meaningful, capped count — gate a pipeline on <code>doctor</code> or <code>install</code> directly.</p></div>
+          <div class="feat"><div class="ix">07</div><h3>lifecycle tools</h3><p>Use <code>list</code>, <code>uninstall</code>, <code>clean</code>, and <code>doctor</code> to repair lockfile and filesystem drift.</p></div>
+          <div class="feat"><div class="ix">08</div><h3>ci-friendly</h3><p>Every command returns a meaningful, capped count. Gate a pipeline on <code>doctor</code> or <code>install</code> directly.</p></div>
           <div class="feat"><div class="ix">09</div><h3>bash 3.2+</h3><p>Runs on macOS default bash and Linux bash 4+. No associative arrays, no external deps to install.</p></div>
         </div>
       </div>
@@ -312,7 +312,7 @@ https://example.com/pinned.sh<span class="c">#sha256=e3b0c44298fc1c149afbf…</s
           <div class="step">
             <div class="num">03</div>
             <div class="body">
-              <h3>install — and commit the lockfile</h3>
+              <h3>install and commit the lockfile</h3>
               <pre class="block"><span class="p">$</span> ./lib/bashdep install
 <span class="c">&gt;</span> installed 3, skipped 0, failed 0
 <span class="p">$</span> git add .bashdep.lock   <span class="d"># pin versions for collaborators</span></pre>
@@ -390,7 +390,7 @@ bashdep::install_from   <span class="d"># reads ./.bashdep</span></pre>
 
   <footer>
     <div class="wrap row">
-      <span><span class="mono" style="color:var(--accent)">&gt;_</span> bashdep — MIT</span>
+      <span><span class="mono" style="color:var(--accent)">&gt;_</span> bashdep | MIT</span>
       <span class="spacer"></span>
       <a href="https://github.com/Chemaclass/bashdep">github</a>
       <a href="https://github.com/Chemaclass/bashdep/releases">releases</a>

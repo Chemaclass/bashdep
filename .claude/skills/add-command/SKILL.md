@@ -11,11 +11,11 @@ Add a new public `bashdep::` lifecycle command (sibling of `install`,
 
 ## Prerequisites
 
-1. **Task file** — create `.tasks/YYYY-MM-DD-add-<command>.md`
-2. **Read the existing commands** — `bashdep` is a single file; scan how
+1. **Task file** - create `.tasks/YYYY-MM-DD-add-<command>.md`
+2. **Read the existing commands** - `bashdep` is a single file; scan how
     `bashdep::clean`, `bashdep::doctor`, `bashdep::uninstall` are
     structured to match style
-3. **Read the API doc** — `docs/api.md` defines the public contract; the
+3. **Read the API doc** - `docs/api.md` defines the public contract; the
     new command's signature must fit the same shape
 
 ## Workflow
@@ -43,11 +43,11 @@ Read the closest sibling command in `bashdep` and its tests in
 
 For each test in the inventory, follow RED → GREEN → REFACTOR:
 
-1. **Happy path** — pure-logic test if possible (no filesystem)
-2. **Filesystem path** — use `$TEST_DIR` + `_seed_*` helpers
-3. **Mode coverage** — one test each for `dry-run`, `silent`, `verbose`,
+1. **Happy path** - pure-logic test if possible (no filesystem)
+2. **Filesystem path** - use `$TEST_DIR` + `_seed_*` helpers
+3. **Mode coverage** - one test each for `dry-run`, `silent`, `verbose`,
     `force` if the command is mutating
-4. **Failure modes** — bad arguments, missing lockfile, IO error
+4. **Failure modes** - bad arguments, missing lockfile, IO error
 5. **Snapshot test** for any new user-visible output
 
 ### 4. Integration
