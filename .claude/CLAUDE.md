@@ -83,6 +83,7 @@ All public functions live in the single `bashdep` script under the
 |----------|---------|
 | `bashdep::install` | Install from an inline URL array |
 | `bashdep::install_from` | Install from a `.bashdep` file |
+| `bashdep::add` | Install URLs and append them to `.bashdep` pinned with `#sha256=` |
 | `bashdep::setup` | Configure dirs / modes (`force`, `dry-run`, `silent`, `verbose`) |
 | `bashdep::list` | List installed deps |
 | `bashdep::uninstall` | Remove specific deps |

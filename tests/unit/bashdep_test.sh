@@ -1848,3 +1848,109 @@ function test_bashdep_cli_flag_after_command_still_parsed() {
   assert_contains "[dry-run]" "$output"
   assert_contains "$TEST_DIR" "$output"
 }
+
+# add: install a URL, pin its checksum, and record it in the dependency file.
+
+function _setup_add() {
+  BASHDEP_DIR="$TEST_DIR/lib"
+  BASHDEP_DEV_DIR="$TEST_DIR/lib/dev"
+  BASHDEP_DEP_FILE="$TEST_DIR/.bashdep"
+  BASHDEP_JOBS=1
+  # shellcheck disable=SC2016
+  mock curl 'printf "hello\n" > "$3"'
+  printf 'hello\n' > "$TEST_DIR/ref"
+  ADD_SHA=$(bashdep::_sha256 "$TEST_DIR/ref")
+}
+
+function test_bashdep_add_records_url_with_checksum() {
+  _setup_add
+  bashdep::add "https://example.com/tool" >/dev/null
+  assert_equals "https://example.com/tool#sha256=$ADD_SHA" "$(cat "$BASHDEP_DEP_FILE")"
+}
+
+function test_bashdep_add_installs_the_dependency() {
+  _setup_add
+  bashdep::add "https://example.com/tool" >/dev/null
+  assert_file_exists "$TEST_DIR/lib/tool"
+}
+
+function test_bashdep_add_keeps_dev_suffix_before_checksum() {
+  _setup_add
+  bashdep::add "https://example.com/tool@dev" >/dev/null
+  assert_equals "https://example.com/tool@dev#sha256=$ADD_SHA" "$(cat "$BASHDEP_DEP_FILE")"
+}
+
+function test_bashdep_add_keeps_explicit_checksum() {
+  _setup_add
+  bashdep::add "https://example.com/tool#sha256=$ADD_SHA" >/dev/null
+  assert_equals "https://example.com/tool#sha256=$ADD_SHA" "$(cat "$BASHDEP_DEP_FILE")"
+}
+
+function test_bashdep_add_appends_after_existing_entries() {
+  _setup_add
+  printf 'https://example.com/other' > "$BASHDEP_DEP_FILE"
+  bashdep::add "https://example.com/tool" >/dev/null
+  assert_equals "https://example.com/tool#sha256=$ADD_SHA" "$(sed -n 2p "$BASHDEP_DEP_FILE")"
+}
+
+function test_bashdep_add_skips_url_already_listed() {
+  _setup_add
+  printf 'https://example.com/tool\n' > "$BASHDEP_DEP_FILE"
+  bashdep::add "https://example.com/tool" >/dev/null
+  assert_equals "https://example.com/tool" "$(cat "$BASHDEP_DEP_FILE")"
+}
+
+function test_bashdep_add_dry_run_leaves_file_untouched() {
+  _setup_add
+  BASHDEP_DRY_RUN=true
+  bashdep::add "https://example.com/tool" >/dev/null
+  assert_file_not_exists "$BASHDEP_DEP_FILE"
+}
+
+function test_bashdep_add_dry_run_previews_entry() {
+  _setup_add
+  BASHDEP_DRY_RUN=true
+  assert_contains "[dry-run] Would add 'https://example.com/tool'" \
+    "$(bashdep::add "https://example.com/tool")"
+}
+
+function test_bashdep_add_failed_download_is_not_recorded() {
+  _setup_add
+  mock curl "return 7"
+  bashdep::add "https://example.com/tool" >/dev/null 2>&1
+  assert_file_not_exists "$BASHDEP_DEP_FILE"
+}
+
+function test_bashdep_add_returns_failure_count() {
+  _setup_add
+  mock curl "return 7"
+  bashdep::add "https://example.com/aaa" "https://example.com/bbb" >/dev/null 2>&1
+  assert_equals 2 "$?"
+}
+
+function test_bashdep_add_silent_suppresses_output() {
+  _setup_add
+  BASHDEP_SILENT=true
+  assert_empty "$(bashdep::add "https://example.com/tool")"
+}
+
+function test_bashdep_cli_add_writes_to_file_flag() {
+  _stub_curl_on_path
+  PATH="$TEST_DIR/bin:$PATH" bash "$BASHDEP_BIN" add --dir="$TEST_DIR/lib" \
+    --file="$TEST_DIR/deps.txt" "https://example.com/tool" >/dev/null
+  assert_contains "https://example.com/tool#sha256=" "$(cat "$TEST_DIR/deps.txt")"
+}
+
+function test_bashdep_cli_add_requires_url() {
+  local stderr
+  stderr=$(bashdep::main add 2>&1 >/dev/null)
+  assert_contains "add requires at least one URL" "$stderr"
+}
+
+function test_bashdep_cli_usage_documents_add() {
+  assert_contains "add <url...>" "$(bashdep::usage)"
+}
+
+function test_bashdep_completion_offers_add_command() {
+  assert_contains " add " "$(bashdep::completion bash)"
+}

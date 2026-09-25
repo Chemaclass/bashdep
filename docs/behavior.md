@@ -57,6 +57,8 @@ https://example.com/dev-tool.sh@dev#sha256=2c26b46b68ffc68ff99b453c...
 
 The annotation is stripped before download (`curl`/`wget` never see it) and can combine with the `@dev` suffix. On a mismatch — or when neither `shasum` nor `sha256sum` is available — the download fails, the file is removed, and no lockfile entry is written. A present-but-empty or non-hex annotation (e.g. `#sha256=`) is rejected before download rather than silently skipping the check. Without the annotation, nothing is verified (the default).
 
+`bashdep add <url>` writes the annotation for you from the first download (trust on first use). Later installs, on any machine, verify against that pin. See [`bashdep::add`](api.md#bashdepadd).
+
 ## Error handling
 
 - `bashdep::install` downloads in parallel (up to `BASHDEP_JOBS`, default `4`; use `1` for sequential). `BASHDEP_JOBS` is also settable via `bashdep::setup jobs=N` or the CLI's `--jobs=N`. It must be a non-negative integer; a non-numeric or otherwise invalid value is rejected with a warning and the default of `4` is used. It continues past failed downloads and returns the failure count (capped at 255). Lockfile writes are batched into a single rewrite per directory after all downloads finish, so concurrency never corrupts the lockfile.

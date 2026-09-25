@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Added
 
+- `bashdep add <url...>` installs dependencies and appends them to `.bashdep` pinned with `#sha256=`. Honors `--file`, `@dev`, and all modes.
+
 ### Changed
 
 - Contributor setup: bashdep now installs its own test runner from a pinned, checksummed `.bashdep`, and `make test` bootstraps it on first run. `make` lists targets from the Makefile itself, mistyped targets fail instead of silently succeeding, and `make pre_commit/install` links the hook so it stays current.
