@@ -8,6 +8,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ### Changed
 
+- Claude Code and Codex now share configuration under `.agnostic-ai/`. Run `agnostic-ai sync` after cloning or pulling spec changes. The project issue skill is named `bashdep-gh-issue` to avoid personal skill conflicts.
+
 ### Fixed
 
 ## [0.10.0] - 2026-09-25

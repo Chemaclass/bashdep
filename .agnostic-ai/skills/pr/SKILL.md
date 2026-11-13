@@ -1,11 +1,13 @@
 ---
 name: pr
-description: Push branch and create a GitHub PR following the bashdep PR template
-user-invocable: true
-argument-hint: "[#issue]"
+description: "Push branch and create a GitHub PR following the bashdep PR template"
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob
+x-claude:
+  user-invocable: true
+  argument-hint: "[#issue]"
+  allowed-tools: Bash, Read, Grep, Glob
 ---
+
 
 # Create Pull Request
 
@@ -16,12 +18,30 @@ Push the current branch and open a PR using the project's PR template.
 > PR without following these steps.
 
 ## Current Branch Context
+::target claude
 - Branch: !`git branch --show-current`
 - Commits: !`git log main..HEAD --oneline 2>/dev/null`
 - Changed files: !`git diff main..HEAD --stat 2>/dev/null`
+::end
+::target codex
+Run these commands before following the steps below:
+
+```bash
+git branch --show-current
+git log main..HEAD --oneline 2>/dev/null
+git diff main..HEAD --stat 2>/dev/null
+```
+::end
 
 ## Arguments
-- `$ARGUMENTS` - Issue reference (optional, e.g., `#42` or `42`). If
+
+::target claude
+The skill arguments are `$ARGUMENTS`.
+::end
+::target codex
+Use the arguments supplied with the skill request.
+::end
+- Arguments: Issue reference (optional, e.g., `#42` or `42`). If
   provided, the PR Background section links to it.
 
 ## Instructions
@@ -55,7 +75,7 @@ Push the current branch and open a PR using the project's PR template.
     ```
 
 5. **Generate PR title**:
-    - If `$ARGUMENTS` contains an issue number, fetch the issue title:
+    - If the skill arguments contain an issue number, fetch the issue title:
       ```bash
       gh issue view <number> --json title -q '.title'
       ```

@@ -1,8 +1,10 @@
 ---
 name: doctor-check
-description: Coverage gap analysis for the bashdep public API plus a bashdep::doctor audit
-allowed-tools: Read, Bash, Grep, Glob
+description: "Coverage gap analysis for the bashdep public API plus a bashdep::doctor audit"
+x-claude:
+  allowed-tools: Read, Bash, Grep, Glob
 ---
+
 
 # Doctor Check
 

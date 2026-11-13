@@ -1,11 +1,13 @@
 ---
 name: commit
-description: Stage and commit changes using conventional commits format
-user-invocable: true
-argument-hint: "[message hint]"
+description: "Stage and commit changes using conventional commits format"
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob
+x-claude:
+  user-invocable: true
+  argument-hint: "[message hint]"
+  allowed-tools: Bash, Read, Grep, Glob
 ---
+
 
 # Commit with Conventional Commits
 
@@ -16,14 +18,34 @@ Stage and commit current changes using the conventional commits format.
 > following these steps.
 
 ## Current State
+::target claude
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
 - Staged diff: !`git diff --cached --stat 2>/dev/null`
 - Unstaged diff: !`git diff --stat 2>/dev/null`
 - Recent commits: !`git log --oneline -5 2>/dev/null`
+::end
+::target codex
+Run these commands before following the steps below:
+
+```bash
+git branch --show-current
+git status --short
+git diff --cached --stat 2>/dev/null
+git diff --stat 2>/dev/null
+git log --oneline -5 2>/dev/null
+```
+::end
 
 ## Arguments
-- `$ARGUMENTS` - Optional hint for the commit message
+
+::target claude
+The skill arguments are `$ARGUMENTS`.
+::end
+::target codex
+Use the arguments supplied with the skill request.
+::end
+- Arguments: Optional hint for the commit message
   (e.g., `clean orphan files race`)
 
 ## Instructions

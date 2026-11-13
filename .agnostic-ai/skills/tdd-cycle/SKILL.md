@@ -1,8 +1,10 @@
 ---
 name: tdd-cycle
-description: Run a complete RED -> GREEN -> REFACTOR cycle for a single test
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob
+description: "Run a complete RED -> GREEN -> REFACTOR cycle for a single test"
+x-claude:
+  allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 ---
+
 
 # TDD Cycle
 
@@ -51,6 +53,6 @@ Show the updated test inventory. Ask whether to continue or stop.
 - **Never skip RED** - always verify the test fails first
 - **Minimal code in GREEN** - resist scope creep
 - **All tests green during REFACTOR** - revert immediately if broken
-- **Bash 3.2+** - see `.claude/rules/bash-style.md`
+- **Bash 3.2+** - see `.agnostic-ai/rules/bash-style.md`
 - **Honor modes** - any new mutating code must respect
   `BASHDEP_DRY_RUN`, `BASHDEP_SILENT`, `BASHDEP_VERBOSE`, `BASHDEP_FORCE`
