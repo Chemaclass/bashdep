@@ -1,8 +1,10 @@
 ---
 name: add-command
-description: Add a new bashdep:: lifecycle command with TDD
-allowed-tools: Read, Edit, Write, Bash, Grep, Glob
+description: "Add a new bashdep:: lifecycle command with TDD"
+x-claude:
+  allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 ---
+
 
 # Add Command Skill
 
@@ -66,7 +68,7 @@ For each test in the inventory, follow RED → GREEN → REFACTOR:
 - Update `docs/behavior.md` if the command introduces new lockfile or
   filesystem semantics
 - Update `CHANGELOG.md` `## Unreleased` under `### Added`
-- Update the public-API table in `.claude/CLAUDE.md`
+- Update the public-API table in `.agnostic-ai/AGNOSTIC_AI.md`
 - Update `README.md` Quick Start if the command is part of the typical
   workflow
 

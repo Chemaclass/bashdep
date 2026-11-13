@@ -1,10 +1,12 @@
 ---
 name: release
-description: Run pre-release validation and execute the release process via release.sh
-user-invocable: true
-argument-hint: "[version|--major|--minor|--patch]"
-allowed-tools: Bash, Read, Grep, Glob
+description: "Run pre-release validation and execute the release process via release.sh"
+x-claude:
+  user-invocable: true
+  argument-hint: "[version|--major|--minor|--patch]"
+  allowed-tools: Bash, Read, Grep, Glob
 ---
+
 
 # Release
 
@@ -12,16 +14,35 @@ Run pre-release checks then cut a new bashdep release via `release.sh`.
 
 ## Arguments
 
-- `$ARGUMENTS` - Optional. Either an explicit version (`0.5.0`) or a
+::target claude
+The skill arguments are `$ARGUMENTS`.
+::end
+::target codex
+Use the arguments supplied with the skill request.
+::end
+
+- Arguments: Optional. Either an explicit version (`0.5.0`) or a
   bump flag (`--major`, `--minor`, `--patch`). Default:
   `release.sh` auto-bumps the **minor** version.
 
 ## Current State
 
+::target claude
 - Current version: !`grep -o 'BASHDEP_VERSION="[^"]*"' bashdep | cut -d'"' -f2`
 - Branch: !`git branch --show-current`
 - Working tree: !`git status --short`
 - Unreleased changes: !`awk '/^## \[Unreleased\]$/,/^## \[/' CHANGELOG.md | head -40`
+::end
+::target codex
+Run these commands before following the steps below:
+
+```bash
+grep -o 'BASHDEP_VERSION="[^"]*"' bashdep | cut -d'"' -f2
+git branch --show-current
+git status --short
+awk '/^## \[Unreleased\]$/,/^## \[/' CHANGELOG.md | head -40
+```
+::end
 
 ## Instructions
 
@@ -44,7 +65,7 @@ If ANY check fails, **stop and report**. Do NOT proceed to release.
 ### 2. Confirm with user
 
 Show a summary:
-- Current version → target version (resolved from `$ARGUMENTS`)
+- Current version → target version (resolved from the skill arguments)
 - Key entries from `CHANGELOG.md` `## [Unreleased]` (abbreviated)
 - All checks passed
 
@@ -54,9 +75,8 @@ Ask the user to confirm before running `release.sh`.
 
 Always preview first - `release.sh` is idempotent in dry-run mode:
 
-```bash
-./release.sh $ARGUMENTS --dry-run
-```
+Run `./release.sh` with the requested version or bump flag and `--dry-run`.
+Omit the version argument when none was supplied.
 
 Show the user the proposed:
 - Version bump
@@ -67,9 +87,7 @@ Ask for explicit confirmation before the real run.
 
 ### 4. Execute release
 
-```bash
-./release.sh $ARGUMENTS
-```
+Run `./release.sh` with the confirmed version or bump flag.
 
 `release.sh` will:
 1. Validate the version is semver and greater than current

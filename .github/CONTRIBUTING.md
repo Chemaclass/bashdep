@@ -50,6 +50,19 @@ Prefer commit-time enforcement? Either `make pre_commit/install` (links a plain 
 
 Set your git `user.name` / `user.email` so commit history stays clean: see [first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup).
 
+## AI coding tools
+
+Claude Code and Codex share instructions, rules, and skills under `.agnostic-ai/`. Install [agnostic-ai](https://agnostic-ai.org/docs/installation/) 0.90.0 or later, then run these commands after cloning or pulling changes to the specs:
+
+```bash
+agnostic-ai sync
+agnostic-ai sync --check
+```
+
+Edit `.agnostic-ai/` and `agnostic-ai.yaml`, then run both commands again. Generated tool files are ignored by Git. Claude keeps its automatic ShellCheck hook; both tools must run the quality gate. Claude loads rules for matching paths, while Codex reads them from root `AGENTS.md` and applies them to the listed paths.
+
+Use `/bashdep-gh-issue` in Claude or `$bashdep-gh-issue` in Codex for this repository's issue workflow. The project prefix keeps it separate from personal skills.
+
 ## Bug reports
 
 Please include:

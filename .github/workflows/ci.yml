@@ -25,6 +25,8 @@ jobs:
               - 'release.sh'
               - 'install-dependencies.sh'
               - '.bashdep'
+              - '.agnostic-ai/**'
+              - 'agnostic-ai.yaml'
               - '**/*.sh'
               - '.github/workflows/**'
               - 'Makefile'

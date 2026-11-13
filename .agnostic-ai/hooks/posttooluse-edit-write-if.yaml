@@ -1,0 +1,6 @@
+command: file="$CLAUDE_FILE_PATH"; if [ -n "$file" ] && { echo "$file" | grep -qE '\.sh$|/bashdep$|/pre-commit$'; }; then shellcheck -e SC1091 -e SC2155 -x "$file" 2>&1 | head -20; fi
+description: Runs `file="$CLAUDE_FILE_PATH"; if [ -n "$file" ] && { echo "$file...` on PostToolUse for Edit|Write.
+event: PostToolUse
+matcher: Edit|Write
+name: posttooluse-edit-write-if
+target: claude

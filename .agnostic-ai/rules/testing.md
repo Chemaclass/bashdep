@@ -21,44 +21,19 @@ bashdep currently has a single test layer:
 Pure-logic tests live above filesystem tests in
 `tests/unit/bashdep_test.sh`. Keep that ordering when adding new tests.
 
-## Common bashunit Assertions
+## Assertions
 
-```bash
-assert_equals "expected" "$actual"
-assert_not_equals "not_this" "$actual"
-assert_contains "substring" "$haystack"
-assert_not_contains "substring" "$haystack"
-assert_matches "regex" "$string"
-assert_empty "$var"
-assert_not_empty "$var"
-assert_successful_code "$?"
-assert_general_error "$?"
-assert_file_exists "$path"
-assert_file_not_exists "$path"
-assert_directory_exists "$path"
-assert_match_snapshot "$output"
-```
+Use bashunit's `assert_equals`, `assert_not_equals`, `assert_contains`,
+`assert_not_contains`, `assert_matches`, `assert_empty`, `assert_not_empty`,
+`assert_successful_code`, `assert_general_error`, file/directory existence
+assertions, and `assert_match_snapshot` as appropriate. One assertion per test;
+name each test for its behavior.
 
-## Lifecycle Hooks (already wired in `tests/unit/bashdep_test.sh`)
+## Lifecycle Hooks
 
-```bash
-function set_up() {
-  source "$(current_dir)/../../bashdep"
-  BASHDEP_FORCE=false
-  BASHDEP_SILENT=false
-  BASHDEP_DRY_RUN=false
-  BASHDEP_VERBOSE=false
-  TEST_DIR=$(mktemp -d)
-}
-
-function tear_down() {
-  if [[ -n "$TEST_DIR" && -d "$TEST_DIR" ]]; then
-    rm -rf "$TEST_DIR"
-  fi
-}
-```
-
-Always reset `BASHDEP_*` globals in `set_up` so tests don't leak state.
+`set_up` in `tests/unit/bashdep_test.sh` sources `bashdep`, resets all four mode
+globals to `false`, and creates `$TEST_DIR` with `mktemp -d`. `tear_down` removes
+that directory when it exists. Keep these resets so tests cannot leak state.
 
 ## Test Fixtures
 
@@ -117,24 +92,9 @@ command *within* a single test.
 
 ## Mocking `curl`
 
-bashdep's only network surface is `curl`. To test install paths without
-hitting the network, either:
-
-1. Set `BASHDEP_DRY_RUN=true` and assert on the `[dry-run] Would …` log, or
-2. Define a `curl` shell function in the test that writes a fixture file
-    and returns 0:
-
-```bash
-function curl() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -o) printf 'fixture\n' > "$2"; shift 2 ;;
-      *) shift ;;
-    esac
-  done
-  return 0
-}
-```
+For installation tests, use `BASHDEP_DRY_RUN=true` and assert the log, or define
+`curl` as a shell function that writes a fixture to the requested output path
+and returns success. Keep real network calls out of tests.
 
 ## Reference Tests
 

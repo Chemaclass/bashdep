@@ -1,8 +1,10 @@
 ---
 name: fix-test
-description: Debug and fix failing bashdep tests systematically
-allowed-tools: Read, Edit, Bash, Grep, Glob
+description: "Debug and fix failing bashdep tests systematically"
+x-claude:
+  allowed-tools: Read, Edit, Bash, Grep, Glob
 ---
+
 
 # Fix Test
 
@@ -41,7 +43,7 @@ expected was.
 - **Environment:** fix the fixture path; never hardcode `/tmp/...` outside
   snapshot tests
 - **Bash 3.2 compat:** swap to a 3.2-safe construct
-  (see `.claude/rules/bash-style.md`)
+  (see `.agnostic-ai/rules/bash-style.md`)
 - **Mode-flag leak:** add the reset to `set_up`, or scope the change to
   the single test
 

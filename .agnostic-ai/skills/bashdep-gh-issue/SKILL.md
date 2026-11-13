@@ -1,10 +1,12 @@
 ---
-name: gh-issue
-description: Fetch a GitHub issue, create a branch, plan and implement with TDD, then open a PR
-user-invocable: true
-argument-hint: "<issue-number>"
-allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, WebFetch
+name: bashdep-gh-issue
+description: "Fetch a GitHub issue, create a branch, plan and implement with TDD, then open a PR"
+x-claude:
+  user-invocable: true
+  argument-hint: "<issue-number>"
+  allowed-tools: Bash, Read, Edit, Write, Grep, Glob, Agent, WebFetch
 ---
+
 
 # GitHub Issue Workflow
 
@@ -12,13 +14,20 @@ Fetch a GitHub issue, create a branch, implement following TDD, and open
 a PR.
 
 ## Arguments
-- `$ARGUMENTS` - Issue number (e.g., `42` or `#42`)
+
+::target claude
+The skill arguments are `$ARGUMENTS`.
+::end
+::target codex
+Use the arguments supplied with the skill request.
+::end
+- Arguments: Issue number (e.g., `42` or `#42`)
 
 ## Instructions
 
 ### Phase 1: Setup
 
-1. **Parse the issue number** from `$ARGUMENTS` (strip `#` if present).
+1. **Parse the issue number** from the skill arguments (strip `#` if present).
 
 2. **Fetch issue details**:
     ```bash
@@ -64,11 +73,11 @@ a PR.
       `docs/*.md`, `CHANGELOG.md`)
     - Implementation Order (smallest first step)
 
-8. **Use EnterPlanMode** if implementation is non-trivial.
+8. **Plan before editing** if implementation is non-trivial. Use the tool's planning mode when available.
 
 ### Phase 3: Implement
 
-9. **Follow strict TDD workflow** (see `.claude/rules/tdd-workflow.md`):
+9. **Follow strict TDD workflow** (see `.agnostic-ai/rules/tdd-workflow.md`):
 
     For each test:
     - **RED** - Write failing test, verify it fails for the RIGHT reason

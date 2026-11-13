@@ -1,8 +1,10 @@
 ---
 name: pre-release
-description: Run a comprehensive pre-release validation checklist for bashdep
-allowed-tools: Read, Bash, Grep, Glob
+description: "Run a comprehensive pre-release validation checklist for bashdep"
+x-claude:
+  allowed-tools: Read, Bash, Grep, Glob
 ---
+
 
 # Pre-Release Validation
 

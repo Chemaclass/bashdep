@@ -18,3 +18,28 @@ dist/
 
 # bashunit run state (last-failed cache)
 .bashunit/
+
+# >>> agnostic-ai (managed) >>>
+# Generated paths. Edit specs, not this block. Run `agnostic-ai sync` to refresh.
+# Not committed: a fresh clone or `git worktree` lacks these until `agnostic-ai sync` runs (e.g. a post-checkout hook).
+/.agents/skills/
+/.agnostic-ai/.command-lock
+/.agnostic-ai/.sync-state
+/.agnostic-ai/local/
+/.agnostic-ai/packs/
+/.claude/agent-memory-local/
+/.claude/rules/
+/.claude/scheduled_tasks.lock
+/.claude/scheduled_tasks.lock.bak
+/.claude/settings.json
+/.claude/settings.json.bak
+/.claude/settings.local.json
+/.claude/settings.local.json.bak
+/.claude/skills/
+/.claude/worktrees/
+/AGENTS.md
+/AGENTS.md.bak
+/CLAUDE.md
+/CLAUDE.md.bak
+/agnostic-ai.local.yaml
+# <<< agnostic-ai (managed) <<<
